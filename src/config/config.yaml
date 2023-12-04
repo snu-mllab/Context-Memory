@@ -1,0 +1,69 @@
+hydra:
+  run:
+    dir: .
+  sweep:
+    dir: .
+    subdir: .
+  job_logging:
+    root:
+      level: INFO
+  job:
+    env_set:
+      TOKENIZERS_PARALLELISM: "false"
+
+
+defaults:
+  - base_config  # see src/arguments.py
+  - _self_
+
+
+wandb:
+  log: true
+  entity: ${user}  # Change this to your wandb username.
+  project: ccm
+  group: ${basename:${data.dataset_name}}/${basename:${model.model_name_or_path}}-${training.comp.comp_type}-ntok${training.comp.num_comp_tokens}
+  name: ${basename:${model.model_name_or_path}}-${wandb.tag}
+
+model:
+  model_name_or_path: /storage/shared/janghyun/llama-7b-hf
+  pretrained: true
+
+training:
+  predict_with_generate: true
+  generation_max_length: 128
+
+  do_train: true
+  do_eval: true
+
+  report_to: "none"  # THIS MUST BE NONE. Use wandb args to control logging.
+
+  dataloader_num_workers: 0  # If > 0, some weird process hanging might occur.
+
+  # Default training params: effective batch size = 16
+  num_train_epochs: 3
+  fp16: false
+  fp16_full_eval: false
+  per_device_train_batch_size: 8
+  per_device_eval_batch_size: 8
+  gradient_accumulation_steps: 2
+
+  # Save/eval every 1000 steps and track best model
+  overwrite_output_dir: false  # Resume training from checkpoint if it exists.
+  evaluation_strategy: steps
+  save_strategy: steps
+  eval_steps: 1000
+  save_steps: 1000
+  save_total_limit: 1
+  load_best_model_at_end: false # Always save the best model, eval_steps should be equal to save_steps
+  logging_steps: 200
+
+  # metric_for_best_model: unseen_rougeL
+  greater_is_better: true
+  max_source_length: 256
+  max_target_length: 256
+
+  lamp:
+    num_shot: 1
+    cutoff_ratio: 0.1
+    gist: "gist"
+    recur_cross_attn: false

@@ -1,0 +1,8 @@
+# @package _global_
+
+data:
+  dataset_name: dialog
+
+wandb:
+  group: dialog
+  name: ${basename:${model.model_name_or_path}}-${training.comp.comp_type}-k${data.k}

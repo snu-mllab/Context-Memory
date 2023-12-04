@@ -1,0 +1,8 @@
+# @package _global_
+
+data:
+  dataset_name: soda
+
+wandb:
+  group: soda
+  name: ${basename:${model.model_name_or_path}}-${training.comp.comp_type}
