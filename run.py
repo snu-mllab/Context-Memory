@@ -59,7 +59,7 @@ def run(args):
                 args.n_tok = i
                 print(f"Update n_tok as {args.n_tok}")
 
-        if "-skip" in args.eval_path or "-norel" in args.eval_path:
+        if "-skip" in args.eval_path:
             args.pos_id_type = "skip"
         else:
             args.pos_id_type = "base"
@@ -142,20 +142,18 @@ def run(args):
 
         training_output_dir = f"{SAVEPATH}/{wandb_group_out}/{subfolder}/{args.eval_path}"
         training_output_dir += f"-{method_tag}"
-        if args.dataset == 'metaicl':
-            training_output_dir += f"-k{args.k}"
-        elif args.dataset == "lamp":
+        if args.dataset in ["metaicl", "lamp"]:
             training_output_dir += f"-k{args.k}"
 
         wandb_name = f"{subfolder}-{os.path.basename(training_output_dir)}"
-
-        eval_path = f"{SAVEPATH}/{wandb_group}/{args.eval_path}"
-        base_cmd = f"{base_cmd} training.eval_path={eval_path}"
 
         # Load pretrained model for evaluation
         if args.load_path != '':
             load_path = f"{SAVEPATH}/{wandb_group}/{args.load_path}"
             base_cmd = f"{base_cmd} training.load_path={load_path}"
+
+        eval_path = f"{SAVEPATH}/{wandb_group}/{args.eval_path}"
+        base_cmd = f"{base_cmd} training.eval_path={eval_path}"
 
     # Load pretrained model for finetuning
     elif args.load_path != '':
@@ -180,14 +178,15 @@ def run(args):
 
     if "debug" in model:
         wandb_name = "debug"
-        training_output_dir = f"{SAVEPATH}/{wandb_group_out}/{wandb_name}"        
+        training_output_dir = f"{SAVEPATH}/{wandb_group_out}/{wandb_name}"
 
     base_cmd = f"{base_cmd} wandb.group={wandb_group}"
     base_cmd = f"{base_cmd} wandb.name={wandb_name}"
     base_cmd = f"{base_cmd} training.output_dir={training_output_dir}"
     base_cmd = f"{base_cmd} model.cache_dir={CACHEDIR}"
 
-    if args.no_wandb:
+    # No wandb for testing
+    if (args.no_wandb) or not args.train:
         base_cmd = f"{base_cmd} wandb.log=false"
 
     if args.override is not None:
@@ -216,14 +215,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--save_dir", type=str, default="", help="See path_config.py")
     # Model
-    parser.add_argument("--model", "-M", default="llama-7b")
-    parser.add_argument("--embed",
-                        action="store_true",
-                        help="Train full embedding vectors during LoRA finetuning")
+    parser.add_argument("--model", "-m", default="llama-7b")
     parser.add_argument("--sepembed",
                         type=str2bool,
                         default=True,
-                        help="Train only separate embeddings for COMP tokens")
+                        help="Train only embeddings for COMP tokens")
+    parser.add_argument("--embed",
+                        action="store_true",
+                        help="Train full embedding vectors during LoRA finetuning")
     parser.add_argument("--cond_lora", type=str2bool, default=True, help="Conditional LoRA")
     parser.add_argument("--lora_r", "-r", type=int, default=-1, help="LoRA rank size")
     # Compression
@@ -246,6 +245,7 @@ if __name__ == "__main__":
                         help="Number of COMP tokens for each context")  # n_gist
     # Data
     parser.add_argument("--dataset",
+                        "-d",
                         default='metaicl',
                         choices=['all', 'metaicl', 'dialog', 'soda', 'lamp'])
     parser.add_argument("--pretrain_dataset", type=str, default=None)
@@ -253,7 +253,7 @@ if __name__ == "__main__":
     parser.add_argument("--random_k",
                         type=str2bool,
                         default=False,
-                        help="Use random time steps for finetuning")
+                        help="Use random time steps for sampling")
     parser.add_argument("--max_length", type=int, default=1024, help="Max length for data sample")
     parser.add_argument("--generation_max_length",
                         type=int,

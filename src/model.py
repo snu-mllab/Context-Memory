@@ -166,6 +166,7 @@ def load_lora_weight(path, model, merge=False):
 
         target_key = list(model.state_dict().keys())
         for k, v in lora_weight_saved.items():
+            # backward compatibility
             if 'gist_embeddings' in k:
                 k = k.replace('gist_embeddings', 'comp_embeddings')
             if k not in target_key:
@@ -395,4 +396,4 @@ def update_compression_token(args, model, tokenizer):
     else:
         model.update_comp_token(tokenizer.comp_token_id, tokenizer.sum_token_id)
 
-    print("comp tokens: ", tokenizer.additional_special_tokens)
+    print("comp tokens (w/ sum tokens): ", ''.join(tokenizer.additional_special_tokens))

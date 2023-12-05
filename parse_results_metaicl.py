@@ -53,10 +53,8 @@ for file in files:
         for key in d.keys():
             if key.endswith('rougeL'):
                 res['rougeL'].append(d[key])
-            if key.endswith('input_len'):
-                res['input_len'].append(d[key])
             if key.endswith('loss'):
-                res['loss'].append(d[key])
+                res['test_loss'].append(d[key])
 
     results = {k: sum(v) / len(v) for k, v in res.items()}
     results_dict_state[file] = results
@@ -89,19 +87,22 @@ for file in files:
 
             try:
                 res['rougeL'].append(eval_results[task + 'rougeL'])
-                res['loss'].append(eval_results[task + 'loss'])
-                res['input_len'].append(eval_results[task + 'input_len'])
             except:
                 res['rougeL'].append(results_dict_state[file]['rougeL'])
-                res['loss'].append(results_dict_state[file]['loss'])
-                res['input_len'].append(results_dict_state[file]['input_len'])
+
+            try:
+                res['test_loss'].append(eval_results[task + 'loss'])
+            except:
+                res['test_loss'].append(results_dict_state[file]['test_loss'])
 
             if task.startswith("poem_sentiment"):
+                # Classification with P(class|Input) / P(class)
                 res['acc'].append(eval_results[task + 'acc_base'])
             elif task.startswith("glue-mrpc"):
                 # This dataset has too high evaluation variances to be used for evaluation
                 continue
             else:
+                # Classification by token averaged loss
                 res['acc'].append(eval_results[task + 'acc_norm'])
 
     n = len(res['rougeL'])
@@ -109,16 +110,15 @@ for file in files:
         continue
 
     results = {}
-    results['rougeL'] = sum(res['rougeL']) / n
-    results['loss'] = sum(res['loss']) / n
-    results['train_loss'] = sum(res['train_loss']) / len(res['train_loss'])
-    results['input_len'] = sum(res['input_len']) / n
     results['acc'] = sum(res['acc']) / len(res['acc'])
+    results['rougeL'] = sum(res['rougeL']) / n
+    results['train_loss'] = sum(res['train_loss']) / len(res['train_loss'])
+    results['test_loss'] = sum(res['test_loss']) / n
     results_dict[file] = results
 
 # Print results
 model = results_dict.keys()
-result_keys = ['acc', 'rougeL', 'train_loss', 'test_loss', 'input_len']
+result_keys = ['acc', 'rougeL', 'train_loss', 'test_loss']
 sep = ''
 for name in sorted(list(model)):
     print(f"Model: {name}")

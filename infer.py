@@ -28,7 +28,7 @@ def run(args):
         base_cmd = f"{base_cmd} training.comp.separate_embed=false"
 
     pos_id_type = "base"
-    if "-skip" in args.eval_path or "-norel" in args.eval_path:
+    if "-skip" in args.eval_path:
         pos_id_type = "skip"
     base_cmd = f"{base_cmd} training.comp.relative_embedding={pos_id_type}"
 
@@ -50,11 +50,8 @@ def run(args):
         base_cmd = f"{base_cmd} training.comp.add_comp_token=false"
 
     for i in range(1, 17):
-        if (f"-ntok{i}-" in args.eval_path) or (f"-ntok{i}_" in args.eval_path):
+        if f"-ntok{i}" in args.eval_path:
             base_cmd = f"{base_cmd} training.comp.num_comp_tokens={i}"
-
-    if args.generation_max_length > 0:
-        base_cmd = f"{base_cmd} training.generation_max_length={args.generation_max_length}"
 
     # Evaluation path
     wandb_group = args.dataset
@@ -77,16 +74,24 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", "-M", default="llama-7b")
-    parser.add_argument("--dataset", default='soda', choices=['metaicl', 'dialog', 'soda'])
-    parser.add_argument("--eval_path", "-e", type=str, help="Evaluation model path")
-    parser.add_argument("--load_path", "-l", type=str, default='', help="Pretrained model path")
-    parser.add_argument("--generation_max_length",
-                        type=int,
-                        default=-1,
-                        help="Generation max length")
+    parser.add_argument("--model", "-m", type=str, default="llama-7b")
+    parser.add_argument("--dataset",
+                        "-d",
+                        type=str,
+                        default='all',
+                        choices=['all', 'metaicl', 'dialog', 'soda'])
+    parser.add_argument("--attn_type",
+                        default="concat_recur",
+                        choices=["concat_recur", "merge_recur"],
+                        help="Attention type")
+    parser.add_argument("--ntok", type=int, default=-1, help="Number of tokens")
+    parser.add_argument("--load_path", "-l", type=str, default='', help="Base model adapter path")
+    parser.add_argument("--eval_path", "-e", type=str, help="Compression adapter path")
     parser.add_argument("--interactive", "-i", action="store_true", help="Interactive mode")
 
     args = parser.parse_args()
+
+    if args.ntok > 0:
+        pass
 
     run(args)
