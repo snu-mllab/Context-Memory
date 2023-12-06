@@ -48,12 +48,9 @@ class CompressionArguments:
         metadata={"help": "Number of COMP tokens for each context"},
     )
 
-    random_k: bool = False  # Randomized context time steps for training
-
-    separate_embed: bool = False  # Separate embedding for COMP tokens
-    cond_lora: bool = False  # conditional LoRA
-
-    relative_embedding: str = "base"  # positional embedding choices for COMP tokens ["base", "skip"]
+    separate_embed: bool = True  # Separate embedding for COMP tokens
+    cond_lora: bool = True  # conditional LoRA
+    relative_embedding: str = "skip"  # skip positional embedding id counts for COMP tokens
 
 
 @dataclass
@@ -127,7 +124,7 @@ class CompressionTrainingArguments(TrainingArguments):
     save_optimizer: bool = False
     load_path: str = ''
     eval_path: str = ''
-    
+
     interactive: bool = False
 
     max_source_length: int = 256

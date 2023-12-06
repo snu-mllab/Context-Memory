@@ -34,7 +34,7 @@ class DataCollatorForDialogue_LLAMA:
         for instance in batch:
             instance = self.dialog.sample_dialog(
                 instance,
-                random_k=True,  # self.comp_args.random_k
+                random_k=True, 
                 sum_token=self.sum_token,
                 sum_recur=self.comp_args.attn_type == "merge_recur",
                 neg_control=self.comp_args.comp_type == "neg_control",

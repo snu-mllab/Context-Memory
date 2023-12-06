@@ -1,3 +1,7 @@
+""" The original code is created by Jang-Hyun Kim.
+    GitHub Repository: https://github.com/snu-mllab/Context-Memory
+"""
+
 import os
 import hydra
 import torch
@@ -187,7 +191,8 @@ def main(args: DictConfig) -> None:
         try:
             dataset = torch.load(os.path.join(DATAPATH, "soda/llama/valset.pt"))['dialog']
         except:
-            raise FileNotFoundError("Please download sample SODA data first")
+            raise FileNotFoundError(
+                "Please download sample data: python download.py --type data --dataset soda")
 
         for i in range(-1, 5):
             if i == -1:
@@ -364,12 +369,12 @@ def test(model, tokenizer, inputs, args):
 
 def my_eaxmple(tokenizer):
     dialog = []
-    dialog.append("Hi, I'm Jang-Hyun. How are you?")
-    dialog.append("I'm fine, thank you. And you?")
+    dialog.append("Hi, I'm Jang. How are you?")
+    dialog.append("I'm fine. It's great.")
     dialog.append("I'm fine, too. Where are you from?")
     dialog.append("I'm from Korea.")
     dialog.append("Oh, really? I'm from Korea, too. Do you remember my name? Please tell me.")
-    dialog.append("Yes, I remember. Your name is Jang-Hyun.")
+    dialog.append("Yes, I remember. Your name is Jang.")
 
     dialog = [tokenizer.encode(d, add_special_tokens=False) for d in dialog]
 

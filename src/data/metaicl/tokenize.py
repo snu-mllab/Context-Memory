@@ -5,7 +5,7 @@ import torch
 from collections import defaultdict
 
 DATAPATH = "/storage/janghyun/datasets"
-DATAPATH_METAICL = "/home/janghyun/Codes/chat/metaICL"
+DATAPATH_METAICL = "/home/janghyun/Codes/chat/metaicl"
 
 
 def load_data(task, split, k, seed=100, config_split=None, datasets=None):
@@ -35,11 +35,11 @@ def load_tokenize_save(tokenizer, is_llama=True, chat=True):
     load_path = os.path.join(DATAPATH_METAICL, "data")
     if is_llama:
         if chat:
-            save_path_base = os.path.join(DATAPATH, f"metaICL/llama2-chat")
+            save_path_base = os.path.join(DATAPATH, f"metaicl/llama2-chat")
         else:
-            save_path_base = os.path.join(DATAPATH, f"metaICL/llama")
+            save_path_base = os.path.join(DATAPATH, f"metaicl/llama")
     else:
-        save_path_base = os.path.join(DATAPATH, f"metaICL/flan-t5")
+        save_path_base = os.path.join(DATAPATH, f"metaicl/flan-t5")
     print("Save data at", save_path_base)
 
     failed = []

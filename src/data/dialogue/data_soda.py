@@ -1,3 +1,7 @@
+""" The original code is created by Jang-Hyun Kim.
+    GitHub Repository: https://github.com/snu-mllab/Context-Memory
+"""
+
 import os
 import torch
 import numpy as np

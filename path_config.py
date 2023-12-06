@@ -1,6 +1,6 @@
 ####################
 # Modify here
 CACHEDIR = "/storage/shared/janghyun"  # huggingface model cache_dir
-DATAPATH = "/storage/janghyun/datasets"  # tokenized data directory (containing folders e.g. metaICL, soda)
-SAVEPATH = "/storage/janghyun/results/context-memory"  # result directory
+DATAPATH = "/home/janghyun/test_data"  #"./dataset"  # tokenized data directory (containing folders e.g. metaICL, soda)
+SAVEPATH = "/home/janghyun/test_result"  #"./result" # result directory
 ####################

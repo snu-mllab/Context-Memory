@@ -17,21 +17,6 @@ def run(args):
     base_cmd = f"{base_cmd} +{args.dataset}={model}"
     base_cmd = f"{base_cmd} training.do_train=false wandb.log=false"
 
-    # Model type
-    if "-cond" in args.eval_path or "-gistlora" in args.eval_path:
-        base_cmd = f"{base_cmd} training.comp.cond_lora=true"
-    else:
-        base_cmd = f"{base_cmd} training.comp.cond_lora=false"
-    if "-sepembed" in args.eval_path:
-        base_cmd = f"{base_cmd} training.comp.separate_embed=true"
-    else:
-        base_cmd = f"{base_cmd} training.comp.separate_embed=false"
-
-    pos_id_type = "base"
-    if "-skip" in args.eval_path:
-        pos_id_type = "skip"
-    base_cmd = f"{base_cmd} training.comp.relative_embedding={pos_id_type}"
-
     # Compression type
     attn_type = None
     if "-merge-" in args.eval_path:
@@ -42,12 +27,11 @@ def run(args):
         attn_type = "concat"
     elif "-concat_recur-" in args.eval_path:
         attn_type = "concat_recur"
-
-    if attn_type is not None:
-        base_cmd = f"{base_cmd} training.comp.comp_type=online"
-        base_cmd = f"{base_cmd} training.comp.attn_type={attn_type}"
     else:
-        base_cmd = f"{base_cmd} training.comp.add_comp_token=false"
+        AssertionError("Invalid compression type in eval_path")
+
+    base_cmd = f"{base_cmd} training.comp.comp_type=online"
+    base_cmd = f"{base_cmd} training.comp.attn_type={attn_type}"
 
     for i in range(1, 17):
         if f"-ntok{i}" in args.eval_path:
@@ -74,24 +58,47 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", "-m", type=str, default="llama-7b")
+    parser.add_argument("--model",
+                        "-m",
+                        type=str,
+                        default="llama-7b",
+                        choices=["llama-7b", "llama-2-7b-chat"])
     parser.add_argument("--dataset",
                         "-d",
                         type=str,
                         default='all',
-                        choices=['all', 'metaicl', 'dialog', 'soda'])
-    parser.add_argument("--attn_type",
-                        default="concat_recur",
-                        choices=["concat_recur", "merge_recur"],
-                        help="Attention type")
-    parser.add_argument("--ntok", type=int, default=-1, help="Number of tokens")
-    parser.add_argument("--load_path", "-l", type=str, default='', help="Base model adapter path")
+                        choices=['all', 'metaicl', 'dialog'])
     parser.add_argument("--eval_path", "-e", type=str, help="Compression adapter path")
-    parser.add_argument("--interactive", "-i", action="store_true", help="Interactive mode")
+    parser.add_argument(
+        "--eval_name",
+        type=str,
+        default='',
+        help="Shortcut for eval_path. Set --eval_path and --dataset to test other models.")
+    parser.add_argument("--interactive",
+                        "-i",
+                        action="store_true",
+                        help="Interactive mode. Turning off will run some sanity check test codes.")
 
     args = parser.parse_args()
 
-    if args.ntok > 0:
-        pass
+    args.load_path = ''
+    if args.model == "llama-7b":
+        args.load_path = "llama-7b-no"
+
+    # Shortcut commands
+    if args.eval_name != '':
+        args.dataset == "all"
+
+        if args.model == "llama-7b":
+            if args.eval_name == "merge_recur":
+                args.eval_path = "finetune/llama-7b-no-online-merge_recur-ntok8"
+            if args.eval_name == "concat_recur":
+                args.eval_path = "finetune/llama-7b-no-online-concat_recur-ntok2"
+
+        elif args.model == "llama-2-7b-chat":
+            if args.eval_name == "merge_recur":
+                args.eval_path = "llama-2-7b-chat-online-merge_recur-ntok8"
+            if args.eval_name == "concat_recur":
+                args.eval_path = "llama-2-7b-chat-online-concat_recur-ntok2"
 
     run(args)

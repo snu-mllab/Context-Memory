@@ -47,7 +47,6 @@ class DataCollatorForMetaICL_T5:
             instance = self.meta.add_demonstration(instance,
                                                    max_length=self.max_length,
                                                    k=self.k,
-                                                   random_k=self.comp_args.random_k,
                                                    seed_eval=self.seed_eval,
                                                    sum_token=self.sum_token)
 
@@ -153,7 +152,6 @@ class DataCollatorForMetaICL_LLAMA:
                 instance,
                 max_length=self.max_length,
                 k=self.k,
-                random_k=self.comp_args.random_k,
                 seed_eval=self.seed_eval,
                 sum_token=self.sum_token,
                 sum_recur=self.comp_args.attn_type == "merge_recur",

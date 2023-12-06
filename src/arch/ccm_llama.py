@@ -1,4 +1,7 @@
-"""Huggingface LLaMA with Compressed Context Memory."""
+""" Huggingface LLaMA with Compressed Context Memory.
+    The original code is created by Jang-Hyun Kim.
+    GitHub Repository: https://github.com/snu-mllab/Context-Memory
+"""
 
 import math
 from typing import List, Optional, Tuple, Union

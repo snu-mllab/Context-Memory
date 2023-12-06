@@ -74,6 +74,7 @@
         "quartz-with_knowledge",
         "poem_sentiment",
         "quartz-no_knowledge",
+        "glue-mrpc",
         "glue-wnli",
         "inst:climate_fever",
         "ethos-national_origin",

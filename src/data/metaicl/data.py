@@ -1,3 +1,7 @@
+""" The original code is created by Jang-Hyun Kim.
+    GitHub Repository: https://github.com/snu-mllab/Context-Memory
+"""
+
 import os
 import json
 import torch
@@ -46,11 +50,11 @@ def load_tokenized_data(meta_task="hr_to_lr",
     """
     if is_llama:
         if "llama-2" in model_name.lower():
-            path_base = os.path.join(DATAPATH, f"metaICL/llama2-chat")
+            path_base = os.path.join(DATAPATH, f"metaicl/llama2-chat")
         elif "llama" in model_name.lower():
-            path_base = os.path.join(DATAPATH, f"metaICL/llama")
+            path_base = os.path.join(DATAPATH, f"metaicl/llama")
     else:
-        path_base = os.path.join(DATAPATH, f"metaICL/flan-t5")
+        path_base = os.path.join(DATAPATH, f"metaicl/flan-t5")
 
     path_config = "./src/data/metaicl"
     with open(os.path.join(path_config, meta_task + ".json"), "r") as f:

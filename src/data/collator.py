@@ -160,7 +160,6 @@ class DataCollator_LLAMA:
                     instance,
                     max_length=self.max_length,
                     k=self.k,
-                    random_k=False,
                     seed_eval=self.seed_eval,
                     sum_token=self.sum_token,
                     sum_recur=self.comp_args.attn_type == "merge_recur",

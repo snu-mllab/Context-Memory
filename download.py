@@ -4,9 +4,6 @@ import zipfile
 import argparse
 from path_config import SAVEPATH, DATAPATH
 
-DATAPATH = "/home/janghyun/test_data"
-SAVEPATH = "/home/janghyun/test_result"
-
 ####################
 # Google Drive Links
 DriveLinks = {}
@@ -24,23 +21,25 @@ DriveLinks[
     "data_soda"] = "https://drive.google.com/drive/folders/1YSHJlkcyt7WYUyKmW6yiLScrqjNcg6iu?usp=sharing"
 ####################
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--type", type=str, choices=["data", "model"])
-parser.add_argument("--dataset", type=str, choices=["all", "metaicl", "dialog", "soda"])
-args = parser.parse_args()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--type", type=str, choices=["data", "model"])
+    parser.add_argument("--dataset", type=str, choices=["all", "metaicl", "dialog", "soda"])
+    args = parser.parse_args()
 
-if args.type == "data":
-    path = os.path.join(DATAPATH, args.dataset)
-elif args.type == "model":
-    path = os.path.join(SAVEPATH, args.dataset)
+    if args.type == "data":
+        path = os.path.join(DATAPATH, args.dataset)
+    elif args.type == "model":
+        path = os.path.join(SAVEPATH, args.dataset)
 
-print(f"Download {args.dataset} {args.type} from Google Drive at {path}")
+    print(f"Download {args.dataset} {args.type} from Google Drive at {path}")
 
-key = f"{args.type}_{args.dataset}"
-gdown.download_folder(DriveLinks[key], output=path)
+    key = f"{args.type}_{args.dataset}"
+    gdown.download_folder(DriveLinks[key], output=path)
 
-for name in ["llama", "llama2-chat"]:
-    f_name = os.path.join(path, f"{args.dataset}_{name}.zip")
-    with zipfile.ZipFile(f_name, 'r') as zip_ref:
-        zip_ref.extractall(path)
-    os.remove(f_name)
+    if args.type == "data":
+        for name in ["llama", "llama2-chat"]:
+            f_name = os.path.join(path, f"{args.dataset}_{name}.zip")
+            with zipfile.ZipFile(f_name, 'r') as zip_ref:
+                zip_ref.extractall(path)
+            os.remove(f_name)

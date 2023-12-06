@@ -44,7 +44,7 @@ def run(args):
     if args.comp_type in ["no", "neg_control"]:
         base_cmd = f"{base_cmd} training.comp.add_comp_token=false"
         args.cond_lora = args.sepembed = False
-        args.pos_id_type = "base"
+        base_cmd = f"{base_cmd} training.comp.relative_embedding=base"
 
     base_cmd = f"{base_cmd} training.comp.comp_type={args.comp_type}"
 
@@ -59,17 +59,9 @@ def run(args):
                 args.n_tok = i
                 print(f"Update n_tok as {args.n_tok}")
 
-        if "-skip" in args.eval_path:
-            args.pos_id_type = "skip"
-        else:
-            args.pos_id_type = "base"
-
     if args.n_tok > 1:
         base_cmd = f"{base_cmd} training.comp.num_comp_tokens={args.n_tok}"
         method_tag += f"-ntok{args.n_tok}"
-    if args.random_k:
-        base_cmd = f"{base_cmd} training.comp.random_k=true"
-        method_tag += f"-randk"
 
     # Model config
     model_tag = ''
@@ -104,16 +96,8 @@ def run(args):
         base_cmd = f"{base_cmd} training.learning_rate={args.lr}"
 
     # Conditional Lora
-    if args.cond_lora:
-        base_cmd = f"{base_cmd} training.comp.cond_lora=true"
-        model_tag += f"-cond"
-    if args.sepembed:
-        base_cmd = f"{base_cmd} training.comp.separate_embed=true"
-        model_tag += f"-sepembed"
-
-    base_cmd = f"{base_cmd} training.comp.relative_embedding={args.pos_id_type}"
-    if args.pos_id_type == "skip":
-        model_tag += f"-skip"
+    if not args.cond_lora: base_cmd = f"{base_cmd} training.comp.cond_lora=false"
+    if not args.sepembed: base_cmd = f"{base_cmd} training.comp.separate_embed=false"
 
     if args.seed != 42:
         base_cmd = f"{base_cmd} training.seed={args.seed}"
@@ -133,6 +117,8 @@ def run(args):
         generation_max_length = args.max_length + args.n_tok * args.k + 128
         base_cmd = f"{base_cmd} training.generation_max_length={generation_max_length}"
 
+    if args.dataset in ["metaicl", "lamp"] and (args.k != 16 or args.eval_path != ''):
+        method_tag += f"-k{args.k}"
     if args.tag != '':
         method_tag += f"{args.tag}"
 
@@ -142,12 +128,12 @@ def run(args):
 
         training_output_dir = f"{SAVEPATH}/{wandb_group_out}/{subfolder}/{args.eval_path}"
         training_output_dir += f"-{method_tag}"
-        if args.dataset in ["metaicl", "lamp"]:
-            training_output_dir += f"-k{args.k}"
 
         wandb_name = f"{subfolder}-{os.path.basename(training_output_dir)}"
 
         # Load pretrained model for evaluation
+        if args.eval_path.startswith("finetune"):
+            assert args.load_path != '', "Check args.load_path! (e.g., llama-7b-no)"
         if args.load_path != '':
             load_path = f"{SAVEPATH}/{wandb_group}/{args.load_path}"
             base_cmd = f"{base_cmd} training.load_path={load_path}"
@@ -161,8 +147,6 @@ def run(args):
 
         training_output_dir = f"{SAVEPATH}/{wandb_group_out}/{subfolder}/{args.load_path}"
         training_output_dir += f"{model_tag}-{method_tag}"
-        if args.dataset == 'metaicl':
-            training_output_dir += f"-k{args.k}"
 
         wandb_name = f"{subfolder}-{os.path.basename(training_output_dir)}"
 
@@ -171,9 +155,6 @@ def run(args):
 
     else:
         wandb_name = f"{model}{model_tag}-{method_tag}"
-        if args.dataset == 'metaicl':
-            wandb_name += f"-k{args.k}"
-
         training_output_dir = f"{SAVEPATH}/{wandb_group_out}/{wandb_name}"
 
     if "debug" in model:
@@ -224,36 +205,38 @@ if __name__ == "__main__":
                         action="store_true",
                         help="Train full embedding vectors during LoRA finetuning")
     parser.add_argument("--cond_lora", type=str2bool, default=True, help="Conditional LoRA")
-    parser.add_argument("--lora_r", "-r", type=int, default=-1, help="LoRA rank size")
+    parser.add_argument("--lora_r",
+                        "-r",
+                        type=int,
+                        default=-1,
+                        help="LoRA rank size (default settings are in src/config)")
     # Compression
     parser.add_argument("--comp_type",
                         default="online",
                         choices=["no", "pos_control", "neg_control", "fixed", "online"],
-                        help="Compression type")  # condition
+                        help="Compression type")
     parser.add_argument("--attn_type",
                         default="concat_recur",
                         choices=["concat_recur", "merge_recur", "concat", "merge", "gist"],
                         help="Attention type")
-    parser.add_argument("--pos_id_type",
-                        type=str,
-                        default="skip",
-                        choices=["base", "skip"],
-                        help="Position embedding type for COMP tokens")  # gistrel
     parser.add_argument("--n_tok",
                         type=int,
                         default=1,
-                        help="Number of COMP tokens for each context")  # n_gist
+                        help="Number of COMP tokens for each context")
     # Data
     parser.add_argument("--dataset",
                         "-d",
                         default='metaicl',
-                        choices=['all', 'metaicl', 'dialog', 'soda', 'lamp'])
-    parser.add_argument("--pretrain_dataset", type=str, default=None)
-    parser.add_argument("--k", type=int, default=16, help="Max number of context time steps")
-    parser.add_argument("--random_k",
-                        type=str2bool,
-                        default=False,
-                        help="Use random time steps for sampling")
+                        choices=['all', 'metaicl', 'dialog', 'soda', 'lamp'],
+                        help="The 'all' dataset refers to the mixture of MetaICL and SODA.")
+    parser.add_argument("--pretrain_dataset",
+                        type=str,
+                        default=None,
+                        help="Train dataset. Use when it is differ from the evaluation dataset")
+    parser.add_argument("--k",
+                        type=int,
+                        default=16,
+                        help="Max number of context time steps (metaicl, LaMP)")
     parser.add_argument("--max_length", type=int, default=1024, help="Max length for data sample")
     parser.add_argument("--generation_max_length",
                         type=int,
@@ -266,8 +249,11 @@ if __name__ == "__main__":
     parser.add_argument("--per_device_train_batch_size", '-b', type=int, default=-1)
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     # Eval
-    parser.add_argument("--load_path", type=str, default='', help="Pretrained model path")
-    parser.add_argument("--eval_path", type=str, default='', help="Evaluation model path")
+    parser.add_argument("--load_path",
+                        type=str,
+                        default='',
+                        help="Full-context finetuned adapter path (not required for LLaMA-2-chat)")
+    parser.add_argument("--eval_path", type=str, default='', help="Compression adapter path")
     parser.add_argument("--no_wandb", action="store_true")
     parser.add_argument("--override")
     parser.add_argument("--tag", type=str, default='')

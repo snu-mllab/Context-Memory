@@ -1,4 +1,7 @@
-"""T5 Model with Compressed Context Memory.."""
+""" T5 Model with Compressed Context Memory.
+    The original code is created by Jang-Hyun Kim.
+    GitHub Repository: https://github.com/snu-mllab/Context-Memory
+"""
 
 import copy
 import warnings
