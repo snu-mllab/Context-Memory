@@ -16,7 +16,7 @@ pip install -r requirements.txt
 ```
 - We use PyTorch 2.0.0.
 
-Supported Models: LLaMA / LLaMA-2-chat
+Supported Models: **LLaMA / LLaMA-2-chat**
 - Please convert the LLaMA weights into Hugging Face Transformers format using the [guideline](https://huggingface.co/docs/transformers/main/model_doc/llama).
 - In [`./path_config.py`](https://github.com/snu-mllab/Context-Memory/blob/main/path_config.py), please set directory configurations.
 
@@ -27,7 +27,7 @@ python download.py --type model --dataset all  # Download adapters
 python interact.py -i -m llama-7b --eval_name [concat_recur/merge_recur]
 ```
 - This will launch an interactive chat system based on LLaMA-7B:  
-  <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=40%>
+  <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=45%>
 
 ## Dataset 
 - We provide tokenized data of [MetaICL](https://github.com/facebookresearch/MetaICL) and [SODA](https://github.com/skywalker023/sodaverse) for LLaMA. Smaller datasets including DailyDialog will be downloaded and tokenized automatically. 
@@ -53,7 +53,7 @@ python run.py --train --dataset [all/metaicl/dialog] --model llama-7b \
     --load_path llama-7b-no \ 
     --attn_type [concat_recur/merge_recur] --n_tok [# <COMP> tokens]
 ```
-- Default configurations for each dataset can be found in `./src/config`. The arguments provided by the command line will overwrite the default configurations. 
+- Default configurations for each dataset can be found in [`./src/config`](https://github.com/snu-mllab/Context-Memory/tree/05d0b542b7d6cc7339c9b13e66d4c15c600efe34/src/config). The arguments provided by the command line will overwrite the default configurations. 
 - For aligned models such as LLaMA-2-chat, it's okay to skip the previous finetuning step with `--comp_type no`. In this case, run the training codes without `--load_path`. 
 
 ## Evaluation
@@ -70,7 +70,7 @@ python run.py --train --dataset [all/metaicl/dialog] --model llama-7b \
 ```
 - The base directory of --load_path and --eval_path is `{SAVEPATH}/{dataset}`. 
 - For example, `--eval_path finetune/llama-7b-no-online-concat_recur-ntok2 --attn_type concat_recur` will test CCM-concat with two compression tokens. `--n_tok` argument is automatically parsed. Be aware to set correct `--attn_type` for the adapter. 
-- In the case of MetaICL, we use --attn_type [concat/merge] (see [L218-223 in run.py](https://github.com/snu-mllab/Context-Memory/blob/main/run.py)). To aggregate evaluation results on multiple test tasks, run `parse_results_metaicl.py --dataset [all,metaicl] --folder ['',finetune]`.
+- In the case of MetaICL, we use --attn_type [concat/merge] (see [L218-223 in run.py](https://github.com/snu-mllab/Context-Memory/blob/05d0b542b7d6cc7339c9b13e66d4c15c600efe34/run.py#L218C3-L218C3)). To aggregate evaluation results on multiple test tasks, run `parse_results_metaicl.py --dataset [all,metaicl] --folder ['',finetune]`.
 
 ## Reference
 - This code is created based on the [Gisting repository](https://github.com/jayelm/gisting).
