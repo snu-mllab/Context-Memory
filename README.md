@@ -63,12 +63,12 @@ python download.py --type model --dataset [all/metaicl/soda]
 ```
 - To test models, run
 ```
-python run.py --train --dataset [all/metaicl/dialog] --model llama-7b \
+python run.py --dataset [all/metaicl/dialog] --model llama-7b \
     --load_path llama-7b-no \ 
     --eval_path [path for compression adapter] \ 
     --attn_type [concat_recur/merge_recur]
 ```
-- The base directory of --load_path and --eval_path is `{SAVEPATH}/{dataset}`. 
+- The base directory of --load_path and --eval_path is `{SAVEPATH}/{dataset}`. (Set --pretrain_dataset for cross-dataset evaluation, e.g., to evaluate model trained with SODA on DailyDialog, set --pretrain_dataset SODA --dataset dialog). 
 - For example, `--eval_path finetune/llama-7b-no-online-concat_recur-ntok2 --attn_type concat_recur` will test CCM-concat with two compression tokens. `--n_tok` argument is automatically parsed. Be aware to set correct `--attn_type` for the adapter. 
 - In the case of MetaICL, we use --attn_type [concat/merge] (see [L218-223 in run.py](https://github.com/snu-mllab/Context-Memory/blob/main/run.py)). To aggregate evaluation results on multiple test tasks, run `parse_results_metaicl.py --dataset [all,metaicl] --folder ['',finetune]`.
 
