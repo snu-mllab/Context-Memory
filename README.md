@@ -1,7 +1,7 @@
 # Compressed Context Memory
 ![main](image/main.png)
 
-[**Paper**](https://arxiv.org/abs/2312.03414) | [**Project Page**](https://janghyun1230.github.io/)
+[**Paper**](https://arxiv.org/abs/2312.03414) | [**Project Page**](https://janghyun1230.github.io/memory/)
 
 - Our approach dynamically creates **compressed memory of contexts** during LLM interactions. 
 - Our approach only requires training a **conditional LoRA for compression**. 
