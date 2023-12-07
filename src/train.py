@@ -171,7 +171,7 @@ def main(args: DictConfig) -> None:
                 # Do Rouge evaluation
                 if not args.training.do_train:
                     metrics = trainer.evaluate(eval_dataset[eval_name])
-                    update_eval_metrics(metrics, all_eval_metrics, to_eval, args)
+                    update_eval_metrics(metrics, all_eval_metrics, to_eval, eval_name, args)
 
         # The default trainer conduct evaluation
         elif args.data.dataset_name in ["dialog", "soda"]:
@@ -186,7 +186,7 @@ def main(args: DictConfig) -> None:
                 # Generation evaluation
                 if not args.training.do_train:
                     metrics = trainer.evaluate(to_eval)
-                    update_eval_metrics(metrics, all_eval_metrics, to_eval, args)
+                    update_eval_metrics(metrics, all_eval_metrics, to_eval, eval_name, args)
 
         elif args.data.dataset_name == "all":
             # Eval dialog
@@ -210,14 +210,14 @@ def main(args: DictConfig) -> None:
                 # Do Rouge evaluation
                 if not args.training.do_train:
                     metrics = trainer.evaluate(eval_dataset[eval_name])
-                    update_eval_metrics(metrics, all_eval_metrics, to_eval, args)
+                    update_eval_metrics(metrics, all_eval_metrics, to_eval, eval_name, args)
 
         if len(all_eval_metrics) > 0:
             trainer.log_metrics("eval", all_eval_metrics)
             trainer.save_metrics("eval", all_eval_metrics)
 
 
-def update_eval_metrics(metrics, all_eval_metrics, to_eval, args):
+def update_eval_metrics(metrics, all_eval_metrics, to_eval, eval_name, args):
     max_eval_samples = (args.data.max_eval_samples
                         if args.data.max_eval_samples is not None else len(to_eval))
     metrics["eval_samples"] = min(max_eval_samples, len(to_eval))
