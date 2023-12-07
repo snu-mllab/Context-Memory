@@ -89,6 +89,10 @@ def get_response(outputs, generation_inputs, tokenizer, is_encoder_decoder):
 
 
 def generate_and_compress(model, tokenizer, inputs, args):
+    """Conduct generate and update compressed context memory
+    Returns:
+        generated output and compressed memory keys/values
+    """
     assert model.comp_relative_embedding == "skip", "Only support 'skip' position_ids type for now"
     is_encoder_decoder = hasattr(model, "encoder")
 
@@ -119,8 +123,9 @@ def generate_and_compress(model, tokenizer, inputs, args):
 
     # Compress
     cur_text = outputs.sequences[0]
-    cur_text = cur_text[:-1]
-    inputs["pos_id_offset"] += cur_text.shape[-1]
+    cur_text = cur_text[:-1]  # eos token
+    ctx_len = cur_text.shape[-1]
+    inputs["pos_id_offset"] += ctx_len
 
     comp_token_tensor = torch.tensor(tokenizer.comp_token_id, device='cuda').unsqueeze(0)
     n_tok = len(tokenizer.comp_token_id)
@@ -132,19 +137,18 @@ def generate_and_compress(model, tokenizer, inputs, args):
                                      pos_id_offset=inputs["pos_id_offset"])
 
     if args.training.comp.attn_type == "concat_recur":
-        comp_loc = [True] * n_tok * inputs["n_turn"] + [False] * cur_text.shape[-1] + [True] * n_tok
+        comp_loc = [True] * n_tok * inputs["n_turn"] + [False] * ctx_len + [True] * n_tok
         comp_loc = torch.tensor(comp_loc, device='cuda')
         past_key_values = extract_comp_results(outputs.past_key_values, comp_loc)
 
     elif args.training.comp.attn_type == "merge_recur":
-        comp_loc = [True] * n_tok * (inputs["n_turn"] >
-                                     0) + [False] * cur_text.shape[-1] + [True] * n_tok
+        comp_loc = [True] * n_tok * (inputs["n_turn"] > 0) + [False] * ctx_len + [True] * n_tok
         comp_loc = torch.tensor(comp_loc, device='cuda')
         past_key_values = extract_comp_results(outputs.past_key_values, comp_loc)
         if inputs["n_turn"] > 0:
             past_key_values = merge_comp_results(past_key_values, n_tok, inputs["n_turn"])
 
-    return response, past_key_values
+    return response, ctx_len, past_key_values
 
 
 @hydra.main(config_path="config", config_name="config", version_base='1.1')
@@ -153,6 +157,7 @@ def main(args: DictConfig) -> None:
 
     # Load model
     model, tokenizer = load_model(args)
+    ## Prefix for each input and output
     tokenizer.sep_token_id_ = tokenizer.encode('a\nA:', add_special_tokens=False)[1:]
     tokenizer.sep_token_id_model = tokenizer.encode('a\nModel:', add_special_tokens=False)[1:]
 
@@ -162,15 +167,19 @@ def main(args: DictConfig) -> None:
     model.eval()
 
     if args.training.interactive:
+        name = "CCM-concat" if "concat" in args.training.comp.attn_type else "CCM-merge"
+        n_tok = len(tokenizer.comp_token_id)
         try:
-            print("\n", "=" * 50)
+            print()
+            print("=" * 50)
+            print(f"Interactive mode with {name}")
             print("Hi :) Write your prompt (Ctrl+c for break):")
             inputs = {}
             inputs["n_turn"] = 0
             inputs["past_key_values"] = None
             inputs["pos_id_offset"] = 0
             while True:
-                query = input("USER : ").strip()
+                query = input("\nUSER : ").strip()
                 query = tokenizer.encode(query, add_special_tokens=False)
                 if inputs["n_turn"] == 0:
                     query = [tokenizer.bos_token_id] + query + tokenizer.sep_token_id_model
@@ -178,13 +187,16 @@ def main(args: DictConfig) -> None:
                     query = tokenizer.sep_token_id_ + query + tokenizer.sep_token_id_model
                 inputs["query"] = torch.tensor(query, device='cuda').unsqueeze(0)
 
-                response, past_key_values = generate_and_compress(model, tokenizer, inputs, args)
+                response, ctx_len, past_key_values = generate_and_compress(
+                    model, tokenizer, inputs, args)
                 inputs["past_key_values"] = past_key_values
                 inputs["n_turn"] += 1
-                print(f"MODEL: {response} (current KV len {past_key_values[0][0].shape[2]})\n")
+                print(f"MODEL: {response}")
+                print(f" => Compress {ctx_len} -> {n_tok} tokens"
+                      f" (Memory key/value size = {past_key_values[0][0].shape[2]})")
 
         except KeyboardInterrupt:
-            print("")
+            print("\rGood bye :)")
 
     else:
         # Load sample data
