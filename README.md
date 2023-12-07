@@ -76,9 +76,11 @@ python run.py --dataset [all/metaicl/dialog] --model llama-7b \
 - This code is created based on the [Gisting repository](https://github.com/jayelm/gisting).
 
 ## Citation
+```
 @article{kim2023compressed,
       title={Compressed Context Memory For Online Language Model Interaction}, 
       author={Kim, Jang-Hyun and Yeom, Junyoung and Yun, Sangdoo and Song, Hyun Oh},
       journal={arXiv preprint arXiv:2312.03414},
       year={2023},
 }
+```
