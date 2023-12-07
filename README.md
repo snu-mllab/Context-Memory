@@ -27,7 +27,7 @@ python download.py --type model --dataset all  # Download adapters
 python interact.py -i -m llama-7b --eval_name [concat_recur/merge_recur]
 ```
 - This will launch an interactive chat system based on LLaMA-7B:  
-  <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=45%>
+  <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=50%>
 
 ## Dataset 
 - We provide tokenized data of [MetaICL](https://github.com/facebookresearch/MetaICL) and [SODA](https://github.com/skywalker023/sodaverse) for LLaMA. Smaller datasets including DailyDialog will be downloaded and tokenized automatically. 
@@ -76,9 +76,11 @@ python run.py --dataset [all/metaicl/dialog] --model llama-7b \
 - This code is created based on the [Gisting repository](https://github.com/jayelm/gisting).
 
 ## Citation
+```
 @article{kim2023compressed,
       title={Compressed Context Memory For Online Language Model Interaction}, 
       author={Kim, Jang-Hyun and Yeom, Junyoung and Yun, Sangdoo and Song, Hyun Oh},
       journal={arXiv preprint arXiv:2312.03414},
       year={2023},
 }
+```
