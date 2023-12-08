@@ -719,7 +719,6 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
         answer_list = []
 
         logger.info(f"***** Evaluating LaMP{lamp_index} classification *****")
-        count = 0
         for batch in tqdm(dataloader):
             answers = batch.pop("answers")
             answers = answers.numpy()
@@ -747,20 +746,6 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
             prediction_base_list += preds_base.tolist()
             answer_list += answers.tolist()
 
-            count += 1
-            if count % 10 == 0:
-                preds = np.array(prediction_list)
-                preds_norm = np.array(prediction_norm_list)
-                preds_base = np.array(prediction_base_list)
-                answers = np.array(answer_list)
-
-                acc = (preds == answers).mean()
-                acc_base = (preds_base == answers).mean()
-                acc_norm = (preds_norm == answers).mean()
-
-                print(
-                    f"acc: {acc * 100:.2f} acc_base: {acc_base * 100:.2f} acc_norm: {acc_norm * 100:.2f}"
-                )
 
         total = {}
         preds = np.array(prediction_list)
@@ -774,29 +759,13 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
 
         total = {
             "eval_acc": acc,
-            "eval_acc_base": acc_base,
-            "eval_acc_norm": acc_norm,
+            # we do not report these
+            # "eval_acc_base": acc_base,
+            # "eval_acc_norm": acc_norm,
         }
-
-        if lamp_index == 2:
-            f1_metric = evaluate.load("f1")
-            f1 = f1_metric.compute(predictions=prediction_list,
-                                   references=answer_list,
-                                   average="macro")
-            total.update(f1)
 
         for k, v in total.items():
             total[k] = round(v * 100, 2)
-
-        if lamp_index == 3:
-            mse_metric = evaluate.load("mse")
-            mse = mse_metric.compute(predictions=prediction_list,
-                                     references=answer_list,
-                                     squared=False)
-            total.update(mse)
-            mae_metric = evaluate.load("mae")
-            mae = mae_metric.compute(predictions=prediction_list, references=answer_list)
-            total.update(mae)
 
         return total
 

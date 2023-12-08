@@ -49,7 +49,6 @@ def split_input(input_, lamp_index):
 def generate_instruction(instruction, profile, lamp_index, maybe_comp_str="", sum_tok_str="", gist_profile=False, recur_profile=False):
 
     conjunction = f"\n{maybe_comp_str}\n, and " if recur_profile else ", and "
-    # conjunction = ", and "
     nshot = len(profile)
 
     if lamp_index == 1:

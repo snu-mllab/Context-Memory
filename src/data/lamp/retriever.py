@@ -21,15 +21,6 @@ class BaseRetriever:
         returns selected profile w.r.t. inputs
         """
 
-        # select random k profiles
-
-        # ret = random.choices(profile, k=self.k)
-        # if eval and not self.random_eval:
-        #     k = self.k
-        #     if len(profile) < k:
-        #         ret = profile
-        #     else:
-        #         ret = profile[:k]
         if eval:
             n = len(profile)
             k = 16
@@ -38,28 +29,13 @@ class BaseRetriever:
             ret = [profile[i] for i in idx]
             if len(ret) >= self.k:
                 ret = ret[:self.k]
-            # print("test")
-            # print(ret)
-            # print(len(ret))
         else:
             n = len(profile)
             k = self.k
             if self.random_k:
                 k = self.rng.integers(low=1, high=self.k+1)
 
-            # if self.rng.uniform(0, 1) < self.random_k:
-            #     k = self.rng.integers(low=1, high=self.k+1)
-            # else:
-            #     k = self.k
-
             idx = self.rng.choice(n, size=k, replace=n < k)
-            # idx = self.rng.choice(n, size=self.k, replace=n < self.k)
-
-            # if self.random_k > 0:
-            #     if self.k_rng.uniform(0, 1) < self.random_k:
-            #         k = self.k_rng.integers(low=1, high=self.k+1)
-            #         idx = self.k_rng.choice(idx, k)
-
             ret = [profile[i] for i in idx]
 
         return ret

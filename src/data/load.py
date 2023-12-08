@@ -179,7 +179,6 @@ def load_dataset_metric_collator(args, model, tokenizer):
             k=args.data.k,
         )
         lamp_index = int(args.data.dataset_name[4])
-        # TODO: metrics function for each lamp dataset
         compute_metrics = lamp.metrics.get_compute_metrics_fn(comp_token=comp_token,
                                                               tokenizer=tokenizer,
                                                               args=args)
@@ -202,19 +201,11 @@ def load_dataset_from_args(args):
     train_dataset = eval_dataset = None
 
     if "lamp" in args.data.dataset_name:
-        if "random" not in args.data.dataset_name:
-            lm_datasets = load_dataset(
-                "src/data/lamp/lamp.py",
-                name=args.data.dataset_name,
-                cache_dir=args.model.cache_dir,
-            )
-        else:
-            # load random profile dataset
-            lm_datasets = load_dataset(
-                "src/data/lamp/random_profile.py",
-                name=args.data.dataset_name,
-                cache_dir=args.model.cache_dir,
-            )
+        lm_datasets = load_dataset(
+            "src/data/lamp/lamp.py",
+            name=args.data.dataset_name,
+            cache_dir=args.model.cache_dir,
+        )
         train_dataset = lm_datasets["train"]
         eval_dataset = DatasetDict({"validation": lm_datasets["validation"]})
 
