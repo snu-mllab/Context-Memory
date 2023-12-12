@@ -45,7 +45,7 @@ python download.py --type data --dataset [metaicl/soda]
 python run.py --train --dataset [all/metaicl/dialog] --model llama-7b \
     --comp_type no
 ```
-- The 'all' dataset refers to the mixture of MetaICL and SODA.
+- The '**all**' dataset refers to the mixture of MetaICL and SODA.
 - The LoRA adapters will be saved at `{SAVEPATH}/{dataset}/llama-7b-no`. Set SAVEPATH in path_config.py.
 - Then we train our compression adapter as
 ```
