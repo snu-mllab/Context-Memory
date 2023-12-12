@@ -30,7 +30,7 @@ python interact.py -i -m llama-7b --eval_name [concat_recur/merge_recur]
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=50%>
 
 ## Dataset 
-- We provide tokenized data of [MetaICL](https://github.com/facebookresearch/MetaICL) and [SODA](https://github.com/skywalker023/sodaverse) for LLaMA. Smaller datasets including DailyDialog will be downloaded and tokenized automatically. 
+- We provide tokenized data of [MetaICL](https://github.com/facebookresearch/MetaICL) and [SODA](https://github.com/skywalker023/sodaverse) for LLaMA. Smaller datasets including DailyDialog will be downloaded and tokenized automatically during training. 
 - To download tokenized datasets, run
 ```
 python download.py --type data --dataset [metaicl/soda]
