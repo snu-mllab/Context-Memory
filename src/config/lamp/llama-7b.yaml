@@ -1,7 +1,10 @@
 # @package _global_
 
 defaults:
-  - llama-7b
+  - data
+
+model:
+  model_name_or_path: /storage/shared/janghyun/llama-7b-hf
 
 training:
   fp16: true
