@@ -1,7 +1,7 @@
 # Compressed Context Memory
 ![main](image/main.png)
 
-[**Paper**](https://arxiv.org/abs/2312.03414) | [**Project Page**](https://janghyun1230.github.io/)
+[**Paper**](https://arxiv.org/abs/2312.03414) | [**Project Page**](https://janghyun1230.github.io/memory/)
 
 - Our approach dynamically creates **compressed memory of contexts** during LLM interactions. 
 - Our approach only requires training a **conditional LoRA for compression**. 
@@ -30,7 +30,7 @@ python interact.py -i -m llama-7b --eval_name [concat_recur/merge_recur]
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=50%>
 
 ## Dataset 
-- We provide tokenized data of [MetaICL](https://github.com/facebookresearch/MetaICL) and [SODA](https://github.com/skywalker023/sodaverse) for LLaMA. Smaller datasets including DailyDialog will be downloaded and tokenized automatically. 
+- We provide tokenized data of [MetaICL](https://github.com/facebookresearch/MetaICL) and [SODA](https://github.com/skywalker023/sodaverse) for LLaMA. Smaller datasets including DailyDialog will be downloaded and tokenized automatically during training. 
 - To download tokenized datasets, run
 ```
 python download.py --type data --dataset [metaicl/soda]
@@ -42,14 +42,14 @@ python download.py --type data --dataset [metaicl/soda]
 - Set up a [Wandb](https://wandb.ai/) account for logging, and replace the username with yours in the wandb.entity field of `src/conf/config.yaml`.
 - We recommend first finetuning the LLaMA pretrained models on a dataset: 
 ```
-python run.py --train --dataset [all/metaicl/dialog] --model llama-7b \
+python run.py --train --dataset [all/metaicl/dialog/lamp] --model llama-7b \
     --comp_type no
 ```
-- The 'all' dataset refers to the mixture of MetaICL and SODA.
+- The **'all' dataset** refers to the mixture of MetaICL and SODA.
 - The LoRA adapters will be saved at `{SAVEPATH}/{dataset}/llama-7b-no`. Set SAVEPATH in path_config.py.
 - Then we train our compression adapter as
 ```
-python run.py --train --dataset [all/metaicl/dialog] --model llama-7b \
+python run.py --train --dataset [all/metaicl/dialog/lamp] --model llama-7b \
     --load_path llama-7b-no \ 
     --attn_type [concat_recur/merge_recur] --n_tok [# <COMP> tokens]
 ```
@@ -59,18 +59,21 @@ python run.py --train --dataset [all/metaicl/dialog] --model llama-7b \
 ## Evaluation
 - We release optimized adapters via Google Drive. To download, run
 ```
-python download.py --type model --dataset [all/metaicl/soda]
+python download.py --type model --dataset [all/metaicl/dialog/lamp]
 ```
 - To test models, run
 ```
-python run.py --dataset [all/metaicl/dialog] --model llama-7b \
+python run.py --dataset [all/metaicl/dialog/lamp] --model llama-7b \
     --load_path llama-7b-no \ 
     --eval_path [path for compression adapter] \ 
     --attn_type [concat_recur/merge_recur]
 ```
-- The base directory of --load_path and --eval_path is `{SAVEPATH}/{dataset}`. (Set --pretrain_dataset for cross-dataset evaluation, e.g., to evaluate model trained with SODA on DailyDialog, set --pretrain_dataset SODA --dataset dialog). 
-- For example, `--eval_path finetune/llama-7b-no-online-concat_recur-ntok2 --attn_type concat_recur` will test CCM-concat with two compression tokens. `--n_tok` argument is automatically parsed. Be aware to set correct `--attn_type` of the adapter. 
-- In the case of MetaICL, we use --attn_type [concat/merge] (see [L218-223 in run.py](https://github.com/snu-mllab/Context-Memory/blob/05d0b542b7d6cc7339c9b13e66d4c15c600efe34/run.py#L218C3-L218C3)). To aggregate evaluation results on multiple test tasks, run `parse_results_metaicl.py --dataset [all,metaicl] --folder ['',finetune]`.
+- The base directory of --load_path and --eval_path is `{SAVEPATH}/{dataset}`.
+  - Set --pretrain_dataset for cross-dataset evaluation, e.g., to evaluate model trained with SODA on DailyDialog, set --pretrain_dataset SODA --dataset dialog. 
+- As an example, `--eval_path finetune/llama-7b-no-online-concat_recur-ntok2 --attn_type concat_recur` will test CCM-concat with two compression tokens.
+  - The argument `--n_tok` will be automatically parsed from the path name.
+  - Be aware to set the correct `--attn_type` of the adapter. 
+- In the case of MetaICL/LaMP, we use --attn_type [concat/merge] (see [L218-223 in run.py](https://github.com/snu-mllab/Context-Memory/blob/05d0b542b7d6cc7339c9b13e66d4c15c600efe34/run.py#L218C3-L218C3)). To aggregate evaluation results on multiple test tasks, run `parse_results_metaicl.py --dataset [all,metaicl] --folder ['',finetune]`.
 
 ## Reference
 - This code is created based on the [Gisting repository](https://github.com/jayelm/gisting).

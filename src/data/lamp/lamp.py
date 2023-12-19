@@ -21,36 +21,21 @@ class LaMPConfig(datasets.BuilderConfig):
         super().__init__(*args, **kwargs)
 
         dataset_name = kwargs.get("name")
-        # dataset_name: lamp${i} | lamp${i}_time
 
         lamp_index = int(dataset_name[4])
-        time_based = dataset_name.endswith("time")
         self.base_dir = Path(os.path.join(DATAPATH, f"lamp/lamp{lamp_index}"))
 
-        if time_based:
-            self.train_questions = self.base_dir / f"train_questions_time_lamp{lamp_index}.json"
-            self.train_outputs = self.base_dir / f"train_outputs_time_lamp{lamp_index}.json"
-            self.validation_questions = self.base_dir / f"dev_questions_time_lamp{lamp_index}.json"
-            self.validation_outputs = self.base_dir / f"dev_outputs_time_lamp{lamp_index}.json"
-            self.test_questions = self.base_dir / f"test_questions_time_lamp{lamp_index}.json"
-        else:
-            self.train_questions = self.base_dir / f"train_questions_lamp{lamp_index}.json"
-            self.train_outputs = self.base_dir / f"train_outputs_lamp{lamp_index}.json"
-            self.validation_questions = self.base_dir / f"dev_questions_lamp{lamp_index}.json"
-            self.validation_outputs = self.base_dir / f"dev_outputs_lamp{lamp_index}.json"
-            self.test_questions = self.base_dir / f"test_questions_lamp{lamp_index}.json"
+        self.train_questions = self.base_dir / f"train_questions.json"
+        self.train_outputs = self.base_dir / f"train_outputs.json"
+        self.validation_questions = self.base_dir / f"dev_questions.json"
+        self.validation_outputs = self.base_dir / f"dev_outputs.json"
+        self.test_questions = self.base_dir / f"test_questions.json"
 
-        self.time_based = time_based
         self.lamp_index = lamp_index
         self.max_tok_len = max_tok_len
-        if lamp_index == 3:
-            self.max_tok_len = 128
         self.cutoff_ratio = cutoff_ratio
 
     def gen_kwargs(self, split):
-
-        # tokenizer = "t5" if self.is_t5 else "llama"
-        tokenizer = "t5"
 
         if split == "train":
             questions_path = self.train_questions
@@ -65,14 +50,7 @@ class LaMPConfig(datasets.BuilderConfig):
             raise ValueError("Invalid Split!")
 
         split_ = "dev" if split == "validation" else split
-        split_based = "time" if self.time_based else "user"
-        tok_len_path = self.base_dir / f"lamp{self.lamp_index}_ppep_token_len_{split_}_{split_based}_{tokenizer}.npy"
-        # input_len_path = self.base_dir / f"lamp{self.lamp_index}_profile_entry_len_{split_}_{split_based}_{tokenizer}.npy"
-
-        # if split != "test" and self.lamp_index > 3:
-        #     output_len_path = self.base_dir / f"lamp{self.lamp_index}_output_token_len_{split_}_{split_based}_{tokenizer}.npy"
-        # else:
-        #     output_len_path = None
+        tok_len_path = self.base_dir / f"token_len_{split_}.npy"
 
         gen_kwargs = {
             "questions_path": questions_path,
@@ -96,13 +74,8 @@ class LaMP(datasets.GeneratorBasedBuilder):
 
         profile_feature_dict = {"id": datasets.Value("string")}
         lamp_index = self.config.lamp_index
-        time_based = self.config.time_based
         stringtype = datasets.Value("string")
-        description = f"LaMP{lamp_index}(time_based) Data" if time_based \
-                        else f"LaMP{lamp_index} Data"
-
-        if time_based:
-            profile_feature_dict.update({"date": stringtype})
+        description = f"LaMP{lamp_index} Data"
 
         profile_features = {}
         if lamp_index == 1:
@@ -188,25 +161,12 @@ class LaMP(datasets.GeneratorBasedBuilder):
 
         token_len_matrix = np.load(tok_len_path)
 
-        # max_tok_len >= (max_tok_for_entry * num_shot + ", and " * (num_shot - 1)) + "Input: " + "Output: " + "Instruction: " + input_len
-        # -> approximately max_tok_len = num_shot * (max_tok_for_entry + 4) + 10 + input_len
-        # margin_prompt = 10
-        # margin_conjuction = 4
-        # max_tok_for_entry = (max_tok_len - margin_prompt - input_len) // num_shot - margin_conjuction if num_shot > 0 else np.ones_like(input_len) * np.inf
-
-        # Compute only once
         valid_entries = token_len_matrix > 0  # mask for valid entry
         cutoff = (token_len_matrix < max_tok_len) * valid_entries
         remains = cutoff.sum(axis=1)
         total = valid_entries.sum(axis=1)
         ratio = remains / total  # ratio[i] == profile remaining ratio of ith datapoint after cutoff
 
-        if lamp_index != 3:
-            print(f"max_tok_len={max_tok_len}, cutoff_ratio={cutoff_ratio}")
-            print(f"{(ratio < cutoff_ratio).sum() / ratio.size * 100:.2f}% removed")
-        else:
-            print(f"max_tok_len={max_tok_len}, cutoff_value=32")
-            print(f"{(remains < 32).sum() / remains.size * 100:.2f}% removed")
 
         if outputs is not None:
             for i, (question, output) in enumerate(zip(questions, outputs)):

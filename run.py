@@ -218,9 +218,9 @@ if __name__ == "__main__":
     ## Notes on attention types ##
     ## 1. concat_recur/merge_recur refers to CCM-concat/-merge
     ## 2. concat/merge are the variants of CCM-concat/-merge.
-    ##    During compression, they do not attend the previous memory state, attending only to the current context.
+    ##    During compression, they do not attend to the previous memory state, attending only to the current context.
     ##    When generating outputs, they attend to the concatenated/merged memory states.
-    ##    This strategy show slightly better performance in MetaICL.
+    ##    This strategy shows slightly better performance in MetaICL or LaMP.
     ## 3. gist refers to the Gisting compression method.
     parser.add_argument("--attn_type",
                         default="concat_recur",
