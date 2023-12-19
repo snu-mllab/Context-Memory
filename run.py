@@ -20,7 +20,7 @@ def run(args):
     else:
         args.no_wandb = True
 
-    # Config file
+    ## Config file
     model = args.model
     base_cmd = f"{base_cmd} +{args.dataset}={model}"
 
@@ -37,7 +37,7 @@ def run(args):
             max_length += args.n_tok * args.k
         base_cmd = f"{base_cmd} training.generation_max_length={max_length}"
 
-    # Compression config
+    ## Compression config
     if args.attn_type == "gist":
         args.comp_type = "fixed"
 
@@ -47,23 +47,33 @@ def run(args):
         base_cmd = f"{base_cmd} training.comp.relative_embedding=base"
 
     base_cmd = f"{base_cmd} training.comp.comp_type={args.comp_type}"
-
     method_tag = args.comp_type
-    if args.comp_type not in ["no", "neg_control"]:
-        base_cmd = f"{base_cmd} training.comp.attn_type={args.attn_type}"
-        method_tag += f"-{args.attn_type}"
 
     if args.eval_path != '':
+        # Parse attn_type and n_tok from eval_path
         for i in range(1, 17):
             if (f"-ntok{i}" in args.eval_path):
                 args.n_tok = i
                 print(f"Update n_tok as {args.n_tok}")
+                
+        if "concat_recur" in args.eval_path:
+            args.attn_type = "concat_recur"
+        elif "merge_recur" in args.eval_path:
+            args.attn_type = "merge_recur"
+        elif "concat" in args.eval_path:
+            args.attn_type = "concat"
+        elif "merge" in args.eval_path:
+            args.attn_type = "merge"
+
+    if args.comp_type not in ["no", "neg_control"]:
+        base_cmd = f"{base_cmd} training.comp.attn_type={args.attn_type}"
+        method_tag += f"-{args.attn_type}"
 
     if args.n_tok > 1:
         base_cmd = f"{base_cmd} training.comp.num_comp_tokens={args.n_tok}"
         method_tag += f"-ntok{args.n_tok}"
 
-    # Model config
+    ## Model config
     model_tag = ''
     if model.startswith("llama"):
         if args.lora_r > 0:
@@ -84,6 +94,7 @@ def run(args):
             base_cmd = f"{base_cmd} training.gradient_accumulation_steps={128//bs}"
             args.tag += f"_batch{bs}"
 
+    ## Training config
     if model.startswith('flan'):
         if args.max_steps > 0:
             st = args.max_steps
@@ -95,7 +106,7 @@ def run(args):
         args.tag += f"_lr{args.lr}"
         base_cmd = f"{base_cmd} training.learning_rate={args.lr}"
 
-    # Conditional Lora
+    ## Conditional Lora
     if not args.cond_lora: base_cmd = f"{base_cmd} training.comp.cond_lora=false"
     if not args.sepembed: base_cmd = f"{base_cmd} training.comp.separate_embed=false"
 
@@ -103,7 +114,7 @@ def run(args):
         base_cmd = f"{base_cmd} training.seed={args.seed}"
         args.tag += f"_seed{args.seed}"
 
-    # Logging path
+    ## Logging path
     if args.pretrain_dataset is None:
         wandb_group = wandb_group_out = args.dataset
     else:
@@ -122,7 +133,7 @@ def run(args):
     if args.tag != '':
         method_tag += f"{args.tag}"
 
-    # Evaluation path
+    ## Evaluation path
     if args.eval_path != '':
         subfolder = 'test'
 
@@ -141,7 +152,7 @@ def run(args):
         eval_path = f"{SAVEPATH}/{wandb_group}/{args.eval_path}"
         base_cmd = f"{base_cmd} training.eval_path={eval_path}"
 
-    # Load pretrained model for finetuning
+    ## Load pretrained model for finetuning
     elif args.load_path != '':
         subfolder = 'finetune'
 
@@ -204,24 +215,29 @@ if __name__ == "__main__":
     parser.add_argument("--embed",
                         action="store_true",
                         help="Train full embedding vectors during LoRA finetuning")
-    parser.add_argument("--cond_lora", type=str2bool, default=True, help="Conditional LoRA")
+    parser.add_argument("--cond_lora", type=str2bool, default=True, help="Use conditional LoRA")
     parser.add_argument("--lora_r",
                         "-r",
                         type=int,
                         default=-1,
-                        help="LoRA rank size (default settings are in src/config)")
+                        help="LoRA rank size (default settings are provided in src/config)")
     # Compression
+    ## Notes on compression types ##
+    ## 1. 'no' refers to the full attention model without compression.
+    ## 2. 'neg_control' refers to the full attention model attending only the input without context.
+    ## 3. 'fixed' refers to the fixed compression method.
+    ## 4. 'online' refers to the online compression method (ours).
     parser.add_argument("--comp_type",
                         default="online",
                         choices=["no", "pos_control", "neg_control", "fixed", "online"],
                         help="Compression type")
     ## Notes on attention types ##
-    ## 1. concat_recur/merge_recur refers to CCM-concat/-merge
-    ## 2. concat/merge are the variants of CCM-concat/-merge.
+    ## 1. 'concat_recur/merge_recur' refers to CCM-concat/-merge
+    ## 2. 'concat/merge' are the variants of CCM-concat/-merge.
     ##    During compression, they do not attend to the previous memory state, attending only to the current context.
     ##    When generating outputs, they attend to the concatenated/merged memory states.
     ##    This strategy shows slightly better performance in MetaICL or LaMP.
-    ## 3. gist refers to the Gisting compression method.
+    ## 3. 'gist' refers to the Gisting compression method.
     parser.add_argument("--attn_type",
                         default="concat_recur",
                         choices=["concat_recur", "merge_recur", "concat", "merge", "gist"],
@@ -229,22 +245,22 @@ if __name__ == "__main__":
     parser.add_argument("--n_tok",
                         type=int,
                         default=1,
-                        help="Number of COMP tokens for each context")
+                        help="Number of COMP tokens for each time step")
     # Data
     parser.add_argument("--dataset",
                         "-d",
                         default='metaicl',
                         choices=['all', 'metaicl', 'dialog', 'soda', 'lamp'],
-                        help="The 'all' dataset refers to the mixture of MetaICL and SODA.")
+                        help="Training/evaluation dataset. 'all' refers to the mixture of MetaICL and SODA.")
     parser.add_argument("--pretrain_dataset",
                         type=str,
                         default=None,
-                        help="Train dataset. Use when it is differ from the evaluation dataset")
+                        help="Training dataset of the evaluation model. Use when the training dataset is differ from the evaluation dataset.")
     parser.add_argument("--k",
                         type=int,
                         default=16,
                         help="Max number of context time steps (metaicl, LaMP)")
-    parser.add_argument("--max_length", type=int, default=1024, help="Max length for data sample")
+    parser.add_argument("--max_length", type=int, default=1024, help="Max token length for each data sample")
     parser.add_argument("--generation_max_length",
                         type=int,
                         default=-1,
@@ -259,7 +275,7 @@ if __name__ == "__main__":
     parser.add_argument("--load_path",
                         type=str,
                         default='',
-                        help="Full-context finetuned adapter path (not required for LLaMA-2-chat)")
+                        help="Full-context finetuned adapter path (not required for default LLaMA-2-chat)")
     parser.add_argument("--eval_path", type=str, default='', help="Compression adapter path")
     parser.add_argument("--no_wandb", action="store_true")
     parser.add_argument("--override")
