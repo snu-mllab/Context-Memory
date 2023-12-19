@@ -37,7 +37,7 @@ class CompressionArguments:
         default="online",
         metadata={"help": "One of online, fixed, pos_control (no masking), or neg_control."},
     )
-    attn_type: str = "concat"  # ["concat_recur", "merge_recur", "concat", "merge", "gist"]
+    attn_type: str = "concat_recur"  # ["concat_recur", "merge_recur", "concat", "merge", "gist"]
 
     add_comp_token: bool = field(
         default=True,
