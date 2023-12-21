@@ -31,11 +31,11 @@ def test_collator(collator, batch, tokenizer, is_llama):
             print("\n* Full input: ")
             print(tokenizer.decode(instance))
 
-            print("\n* Attended input: ")
+            print("\n* Original sample: ")
             mask = model_inputs["attention_mask"][i]
             print(tokenizer.decode([t for k, t in enumerate(instance) if mask[k]]))
 
-            print("\n* Gist attended input: ")
+            print("\n* Compressed sample: ")
             # for j in range(1, model_inputs["attention_mask_comp"].shape[-1], 5):
             #     mask = model_inputs["attention_mask_comp"][i, 0][j]
             #     if mask.sum() > 0:
@@ -57,13 +57,13 @@ def test_collator(collator, batch, tokenizer, is_llama):
             print("\n* Full input: ")
             print(tokenizer.decode(instance))
 
-            print("\n* Attended input: ")
+            print("\n* Original sample: ")
             mask = model_inputs["attention_mask"][i]
             if len(mask.shape) == 2:
                 mask = mask[-1]
             print(tokenizer.decode([t for k, t in enumerate(instance) if mask[k]]))
 
-            print("\n* Cross attended input: ")
+            print("\n* Compressed sample: ")
             mask = model_inputs["cross_attention_mask"][i]
             if len(mask.shape) == 2:
                 mask = mask[-1]
