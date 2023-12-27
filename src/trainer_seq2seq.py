@@ -92,18 +92,20 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
         gen_kwargs = self._gen_kwargs.copy()
         if (gen_kwargs.get("max_length") is None and gen_kwargs.get("max_new_tokens") is None):
             gen_kwargs["max_length"] = self.model.config.max_length
-        gen_kwargs["num_beams"] = (gen_kwargs["num_beams"]
-                                   if gen_kwargs.get("num_beams") is not None else self.model.config.num_beams)
+        gen_kwargs["num_beams"] = (gen_kwargs["num_beams"] if gen_kwargs.get("num_beams")
+                                   is not None else self.model.config.num_beams)
         default_synced_gpus = True if is_deepspeed_zero3_enabled() else False
-        gen_kwargs["synced_gpus"] = (gen_kwargs["synced_gpus"]
-                                     if gen_kwargs.get("synced_gpus") is not None else default_synced_gpus)
+        gen_kwargs["synced_gpus"] = (gen_kwargs["synced_gpus"] if gen_kwargs.get("synced_gpus")
+                                     is not None else default_synced_gpus)
 
         is_encoder_decoder = hasattr(self.model, "encoder")
         original_inputs = None
         if not is_encoder_decoder and "prompt_input_ids" in inputs:
             # Decoder-only models: when generating, we don't want to generate
             # with the full text, but with the prompt text.
-            original_inputs = {k: inputs[k] for k in ["input_ids", "attention_mask", "attention_mask_comp"]}
+            original_inputs = {
+                k: inputs[k] for k in ["input_ids", "attention_mask", "attention_mask_comp"]
+            }
             inputs["input_ids"] = inputs["prompt_input_ids"]
             inputs["attention_mask"] = inputs["prompt_attention_mask"]
             inputs["attention_mask_comp"] = inputs["prompt_attention_mask_comp"]
@@ -129,7 +131,8 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
         # prepare generation inputs
         # some encoder-decoder models can have varying encoder's and thus
         # varying model input names
-        if (is_encoder_decoder and self.model.encoder.main_input_name != self.model.main_input_name):
+        if (is_encoder_decoder and
+                self.model.encoder.main_input_name != self.model.main_input_name):
             generation_inputs = inputs[self.model.encoder.main_input_name]
         else:
             generation_inputs = inputs[self.model.main_input_name]
@@ -161,11 +164,14 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
             generated_tokens = generated_tokens[:, generation_inputs.shape[-1]:]
 
         # in case the batch is shorter than max length, the output should be padded
-        if (gen_kwargs.get("max_length") is not None and generated_tokens.shape[-1] < gen_kwargs["max_length"]):
-            generated_tokens = self._pad_tensors_to_max_len(generated_tokens, gen_kwargs["max_length"])
+        if (gen_kwargs.get("max_length") is not None and
+                generated_tokens.shape[-1] < gen_kwargs["max_length"]):
+            generated_tokens = self._pad_tensors_to_max_len(generated_tokens,
+                                                            gen_kwargs["max_length"])
         elif gen_kwargs.get("max_new_tokens") is not None and generated_tokens.shape[-1] < (
                 gen_kwargs["max_new_tokens"] + 1):
-            generated_tokens = self._pad_tensors_to_max_len(generated_tokens, gen_kwargs["max_new_tokens"] + 1)
+            generated_tokens = self._pad_tensors_to_max_len(generated_tokens,
+                                                            gen_kwargs["max_new_tokens"] + 1)
 
         # Replace original inputs when computing standard LM loss.
         if not is_encoder_decoder and original_inputs is not None:
@@ -178,7 +184,8 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
                 if self.label_smoother is not None:
                     loss = (self.label_smoother(outputs, inputs["labels"]).mean().detach())
                 else:
-                    loss = ((outputs["loss"] if isinstance(outputs, dict) else outputs[0]).mean().detach())
+                    loss = ((outputs["loss"]
+                             if isinstance(outputs, dict) else outputs[0]).mean().detach())
             else:
                 loss = None
 
@@ -187,9 +194,11 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
 
         if has_labels:
             labels = inputs["labels"]
-            if (gen_kwargs.get("max_length") is not None and labels.shape[-1] < gen_kwargs["max_length"]):
+            if (gen_kwargs.get("max_length") is not None and
+                    labels.shape[-1] < gen_kwargs["max_length"]):
                 labels = self._pad_tensors_to_max_len(labels, gen_kwargs["max_length"])
-            elif gen_kwargs.get("max_new_tokens") is not None and labels.shape[-1] < (gen_kwargs["max_new_tokens"] + 1):
+            elif gen_kwargs.get("max_new_tokens") is not None and labels.shape[-1] < (
+                    gen_kwargs["max_new_tokens"] + 1):
                 labels = self._pad_tensors_to_max_len(labels, (gen_kwargs["max_new_tokens"] + 1))
         else:
             labels = None
@@ -235,8 +244,8 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
         gen_kwargs = gen_kwargs.copy()
         if (gen_kwargs.get("max_length") is None and gen_kwargs.get("max_new_tokens") is None):
             gen_kwargs["max_length"] = self.args.generation_max_length
-        gen_kwargs["num_beams"] = (gen_kwargs["num_beams"]
-                                   if gen_kwargs.get("num_beams") is not None else self.args.generation_num_beams)
+        gen_kwargs["num_beams"] = (gen_kwargs["num_beams"] if gen_kwargs.get("num_beams")
+                                   is not None else self.args.generation_num_beams)
         self._gen_kwargs = gen_kwargs
 
         # memory metrics - must set up as early as possible
@@ -245,7 +254,8 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
         eval_dataloader = self.get_eval_dataloader(eval_dataset)
         start_time = time.time()
 
-        eval_loop = (self.prediction_loop if self.args.use_legacy_prediction_loop else self.evaluation_loop)
+        eval_loop = (self.prediction_loop
+                     if self.args.use_legacy_prediction_loop else self.evaluation_loop)
         output = eval_loop(
             eval_dataloader,
             description="Evaluation",
@@ -275,13 +285,16 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
             # execute times, ops, etc.)
             xm.master_print(met.metrics_report())
 
-        self.control = self.callback_handler.on_evaluate(self.args, self.state, self.control, output.metrics)
+        self.control = self.callback_handler.on_evaluate(self.args, self.state, self.control,
+                                                         output.metrics)
 
         self._memory_tracker.stop_and_update_metrics(output.metrics)
 
         if do_classification:
             classification_metrics = self.evaluate_classification(eval_dataset, lamp_index)
-            classification_metrics = {f"{metric_key_prefix}_{k}": v for k, v in classification_metrics.items()}
+            classification_metrics = {
+                f"{metric_key_prefix}_{k}": v for k, v in classification_metrics.items()
+            }
             output.metrics.update(classification_metrics)
 
         return output.metrics
@@ -301,7 +314,8 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
         """
         args = self.args
 
-        prediction_loss_only = (prediction_loss_only if prediction_loss_only is not None else args.prediction_loss_only)
+        prediction_loss_only = (prediction_loss_only
+                                if prediction_loss_only is not None else args.prediction_loss_only)
 
         # if eval is called w/o train init deepspeed here
         if args.deepspeed and not self.deepspeed:
@@ -376,7 +390,10 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
                     batch_size = observed_batch_size
 
             # Prediction step
-            loss, logits, labels = self.prediction_step(model, inputs, prediction_loss_only, ignore_keys=ignore_keys)
+            loss, logits, labels = self.prediction_step(model,
+                                                        inputs,
+                                                        prediction_loss_only,
+                                                        ignore_keys=ignore_keys)
             # For logging generation results
             inputs_decode = None
             if args.include_inputs_for_metrics:
@@ -391,12 +408,13 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
             # Update containers on host
             if loss is not None:
                 losses = self._nested_gather(loss.repeat(batch_size))
-                losses_host = (losses if losses_host is None else torch.cat((losses_host, losses), dim=0))
+                losses_host = (losses if losses_host is None else torch.cat(
+                    (losses_host, losses), dim=0))
             if labels is not None:
                 labels = self._pad_across_processes(labels)
                 labels = self._nested_gather(labels)
-                labels_host = (labels
-                               if labels_host is None else nested_concat(labels_host, labels, padding_index=-100))
+                labels_host = (labels if labels_host is None else nested_concat(
+                    labels_host, labels, padding_index=-100))
             if inputs_decode is not None:
                 inputs_decode = self._pad_across_processes(inputs_decode)
                 inputs_decode = self._nested_gather(inputs_decode)
@@ -407,26 +425,30 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
                 logits = self._nested_gather(logits)
                 if self.preprocess_logits_for_metrics is not None:
                     logits = self.preprocess_logits_for_metrics(logits, labels)
-                preds_host = (logits if preds_host is None else nested_concat(preds_host, logits, padding_index=-100))
+                preds_host = (logits if preds_host is None else nested_concat(
+                    preds_host, logits, padding_index=-100))
             self.control = self.callback_handler.on_prediction_step(args, self.state, self.control)
 
             # Gather all tensors and put them back on the CPU if we have done
             # enough accumulation steps.
-            if (args.eval_accumulation_steps is not None and (step + 1) % args.eval_accumulation_steps == 0):
+            if (args.eval_accumulation_steps is not None and
+                (step + 1) % args.eval_accumulation_steps == 0):
                 if losses_host is not None:
                     losses = nested_numpify(losses_host)
-                    all_losses = (losses if all_losses is None else np.concatenate((all_losses, losses), axis=0))
+                    all_losses = (losses if all_losses is None else np.concatenate(
+                        (all_losses, losses), axis=0))
                 if preds_host is not None:
                     logits = nested_numpify(preds_host)
-                    all_preds = (logits if all_preds is None else nested_concat(all_preds, logits, padding_index=-100))
+                    all_preds = (logits if all_preds is None else nested_concat(
+                        all_preds, logits, padding_index=-100))
                 if inputs_host is not None:
                     inputs_decode = nested_numpify(inputs_host)
                     all_inputs = (inputs_decode if all_inputs is None else nested_concat(
                         all_inputs, inputs_decode, padding_index=-100))
                 if labels_host is not None:
                     labels = nested_numpify(labels_host)
-                    all_labels = (labels
-                                  if all_labels is None else nested_concat(all_labels, labels, padding_index=-100))
+                    all_labels = (labels if all_labels is None else nested_concat(
+                        all_labels, labels, padding_index=-100))
 
                 # Set back to None to begin a new accumulation
                 losses_host, preds_host, inputs_host, labels_host = (
@@ -443,17 +465,20 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
         # Gather all remaining tensors and put them back on the CPU
         if losses_host is not None:
             losses = nested_numpify(losses_host)
-            all_losses = (losses if all_losses is None else np.concatenate((all_losses, losses), axis=0))
+            all_losses = (losses if all_losses is None else np.concatenate(
+                (all_losses, losses), axis=0))
         if preds_host is not None:
             logits = nested_numpify(preds_host)
-            all_preds = (logits if all_preds is None else nested_concat(all_preds, logits, padding_index=-100))
+            all_preds = (logits if all_preds is None else nested_concat(
+                all_preds, logits, padding_index=-100))
         if inputs_host is not None:
             inputs_decode = nested_numpify(inputs_host)
-            all_inputs = (inputs_decode
-                          if all_inputs is None else nested_concat(all_inputs, inputs_decode, padding_index=-100))
+            all_inputs = (inputs_decode if all_inputs is None else nested_concat(
+                all_inputs, inputs_decode, padding_index=-100))
         if labels_host is not None:
             labels = nested_numpify(labels_host)
-            all_labels = (labels if all_labels is None else nested_concat(all_labels, labels, padding_index=-100))
+            all_labels = (labels if all_labels is None else nested_concat(
+                all_labels, labels, padding_index=-100))
 
         # Number of samples
         if has_length(eval_dataset):
@@ -461,7 +486,8 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
         # The instance check is weird and does not actually check for the type,
         # but whether the dataset has the right methods. Therefore we need to
         # make sure it also has the attribute.
-        elif (isinstance(eval_dataset, IterableDatasetShard) and getattr(eval_dataset, "num_examples", 0) > 0):
+        elif (isinstance(eval_dataset, IterableDatasetShard) and
+              getattr(eval_dataset, "num_examples", 0) > 0):
             num_samples = eval_dataset.num_examples
         else:
             if has_length(dataloader):
@@ -570,7 +596,8 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
         eos = self.tokenizer.eos_token_id
         pad_label = -100
         for i in range(len(labels)):
-            y_valid = torch.logical_and(labels[i] != eos, labels[i] != pad_label)  # ignore padding and eos
+            y_valid = torch.logical_and(labels[i] != eos,
+                                        labels[i] != pad_label)  # ignore padding and eos
             y_tokens = labels[i].unsqueeze(dim=-1)
             y_log_probs = log_probs[i]
             if check:
@@ -643,12 +670,14 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
             y_tokens_shift = y_tokens[1:, :]
             y_log_probs_shift = y_log_probs[:-1, :]
 
-            y_valid = torch.logical_and(y_tokens_shift != eos, y_tokens_shift != pad_label)  # ignore padding and eos
+            y_valid = torch.logical_and(y_tokens_shift != eos,
+                                        y_tokens_shift != pad_label)  # ignore padding and eos
             y_valid = y_valid.squeeze(dim=-1)
             if check:
                 print(self.tokenizer.decode(y_tokens_shift[y_valid].squeeze()))
 
-            y_log_probs = torch.gather(y_log_probs_shift[y_valid], 1, y_tokens_shift[y_valid]).squeeze(dim=-1)
+            y_log_probs = torch.gather(y_log_probs_shift[y_valid], 1,
+                                       y_tokens_shift[y_valid]).squeeze(dim=-1)
 
             log_likelihoods[i] = y_log_probs.sum().item()
             log_likelihoods_normalized[i] = y_log_probs.mean().item()
@@ -672,7 +701,9 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
         self.data_collator.retriever.reset_eval_seed()
 
         collate_fn = self.data_collator.collate_for_classification
-        dataloader = DataLoader(dataset, collate_fn=collate_fn, batch_size=self.args.eval_batch_size)
+        dataloader = DataLoader(dataset,
+                                collate_fn=collate_fn,
+                                batch_size=self.args.eval_batch_size)
 
         likelihood_fn = self._loglikelihood_seq2seq if is_t5 else self._loglikelihood_clm
 
@@ -745,7 +776,9 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
         self.model.eval()
 
         is_t5 = hasattr(self.model, "encoder")
-        dataloader = DataLoader(dataset, collate_fn=self.data_collator, batch_size=self.args.eval_batch_size)
+        dataloader = DataLoader(dataset,
+                                collate_fn=self.data_collator,
+                                batch_size=self.args.eval_batch_size)
 
         likelihood_fn = self._loglikelihood_seq2seq if is_t5 else self._loglikelihood_clm
 
@@ -831,7 +864,9 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
         self.model.eval()
 
         is_t5 = hasattr(self.model, "encoder")
-        dataloader = DataLoader(dataset, collate_fn=self.data_collator, batch_size=self.args.eval_batch_size)
+        dataloader = DataLoader(dataset,
+                                collate_fn=self.data_collator,
+                                batch_size=self.args.eval_batch_size)
 
         likelihood_fn = self._loglikelihood_seq2seq if is_t5 else self._loglikelihood_clm
 
