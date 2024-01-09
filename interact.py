@@ -35,7 +35,8 @@ def run(args):
 
     for i in range(1, 17):
         if f"-ntok{i}" in args.eval_path:
-            base_cmd = f"{base_cmd} training.comp.num_comp_tokens={i}"
+            n_tok = i
+    base_cmd = f"{base_cmd} training.comp.num_comp_tokens={n_tok}"
 
     # Evaluation path
     wandb_group = args.dataset
