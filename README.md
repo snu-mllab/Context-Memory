@@ -1,12 +1,12 @@
 # Compressed Context Memory
 ![main](image/main.png)
 
-[**Paper**](https://arxiv.org/abs/2312.03414) | [**Project Page**](https://janghyun1230.github.io/memory/)
+[**Paper**](https://janghyun1230.github.io/memory/static/ccm23.pdf) | [**arXiv**](https://arxiv.org/abs/2312.03414) | [**Project Page**](https://janghyun1230.github.io/memory/)
 
-- Our approach dynamically creates **compressed memory of contexts** during LLM interactions. 
-- Our approach only requires training a **conditional LoRA for compression**. 
-- We use a **fully parallelized training** strategy for recurrent compression procedures. 
-- We conduct evaluations on diverse applications: conversation, multi-task ICL, and personalization. 
+- Our approach dynamically creates **compressed memory of attention keys/values** during LLM interactions. 
+- Our approach only requires training a **conditional LoRA for compression**.
+- We propose a **fully parallelized training** strategy for recurrent compression procedures. 
+- We support evaluations on diverse applications: conversation, multi-task ICL, and personalization. 
 
 ## Setup
 ```
