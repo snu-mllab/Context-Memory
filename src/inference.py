@@ -34,8 +34,8 @@ def merge_comp_results(past_key_values, n_tok, time_step):
     for n_layer in range(len(past_key_values)):
         alpha = 1 / (time_step + 1)
         kv_l = past_key_values[n_layer]
-        kv = [(1 - alpha) * kv_l[k][:, :, :n_tok] + alpha * kv_l[k][:, :, -n_tok:]
-              for k in range(2)]
+        kv = [(1 - alpha) * kv_l[k][:, :, :n_tok] + alpha * kv_l[k][:, :, -n_tok:] for k in range(2)
+             ]
         past_key_values_comp.append(kv)
 
     return past_key_values_comp
@@ -88,6 +88,7 @@ def get_response(outputs, generation_inputs, tokenizer, is_encoder_decoder):
     return response.strip()
 
 
+@torch.inference_mode()
 def generate_and_compress(model, tokenizer, inputs, args):
     """Conduct generate and update compressed context memory
     Returns:
@@ -158,7 +159,13 @@ def main(args: DictConfig) -> None:
     # Load model
     model, tokenizer = load_model(args)
     ## Prefix for each input and output
-    tokenizer.sep_token_id_ = tokenizer.encode('a\nA:', add_special_tokens=False)[1:]
+    if args.data.dataset_name == "pretrain":
+        tokenizer.sep_token_id_ = tokenizer.encode('a\nA:',
+                                                   add_special_tokens=False)[1:2]  # enter token
+    elif args.data.dataset_name == "metaicl":
+        tokenizer.sep_token_id_ = tokenizer.encode('a\nInput:', add_special_tokens=False)[1:]
+    else:
+        tokenizer.sep_token_id_ = tokenizer.encode('a\nA:', add_special_tokens=False)[1:]
     tokenizer.sep_token_id_model = tokenizer.encode('a\nModel:', add_special_tokens=False)[1:]
 
     if args.training.eval_path != '':
@@ -226,6 +233,11 @@ def main(args: DictConfig) -> None:
 
 
 def find_comp_loc(input_ids, tokenizer, attn_type):
+    """ Find location of comp_token
+    Returns:
+        loc: location index of compression token used for inference
+        count: number of compression tokens
+    """
     comp_token = tokenizer.comp_token_id
     sum_token = tokenizer.sum_token_id
 
@@ -264,12 +276,13 @@ def prepare_attn_comp(tokenizer, input_ids, args):
     return attention_mask_comp
 
 
+@torch.inference_mode()
 def test(model, tokenizer, inputs, args):
     """Test code for inference with compression
         * Check whether first three generation results are identical
     Returns:
-        Generated: Generation with text with multiple comp_tokens
-        Generated (comp): Compress text with multiple comp_tokens -> Generation with compressed results
+        Generated: Single forward generation with text with multiple comp_tokens (compression occurs)
+        Generated (comp): Two stage. Compress text with multiple comp_tokens -> Generation with compressed results
         Generated (comp-recur): Recursive compression and then generate with compressed results
         W/o Context: Generation without context        
     """

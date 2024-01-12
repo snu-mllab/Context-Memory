@@ -15,6 +15,8 @@ DriveLinks[
     "model_metaicl"] = "https://drive.google.com/drive/folders/1Xr3NUfZrGI-xyOoTFbCgijaz8efT88Tm?usp=sharing"
 DriveLinks[
     "model_lamp"] = "https://drive.google.com/drive/folders/17mdbKXw5T5guhl0PQiSvdiDmnuj0fE1i?usp=sharing"
+DriveLinks[
+    "model_pretrain"] = "https://drive.google.com/drive/folders/1e2aWOZYsFvAsu6Z-faQXQF2sh5wYbi03?usp=sharing"
 
 # LLaMA tokenized data
 DriveLinks[
@@ -28,7 +30,9 @@ DriveLinks[
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--type", type=str, choices=["data", "model"])
-    parser.add_argument("--dataset", type=str, choices=["all", "metaicl", "dialog", "soda", "lamp"])
+    parser.add_argument("--dataset",
+                        type=str,
+                        choices=["all", "metaicl", "dialog", "soda", "lamp", "pretrain"])
     args = parser.parse_args()
 
     if args.type == "data":

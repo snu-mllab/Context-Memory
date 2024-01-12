@@ -1,0 +1,11 @@
+# @package _global_
+
+data:
+  dataset_name: pretrain
+  max_length: 1024
+  max_example_length: 256
+  k: 16
+
+wandb:
+  group: general
+  name: ${basename:${model.model_name_or_path}}-${training.comp.comp_type}

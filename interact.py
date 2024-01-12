@@ -54,6 +54,9 @@ def run(args):
 
     cmd = base_cmd.split()
     print(cmd)
+    print(f"\nFinetuned model adapter path : {load_path}")
+    print(f"Compression adapter path     : {eval_path}")
+    print()
     os.execvp(cmd[0], cmd)
 
 
@@ -68,7 +71,7 @@ if __name__ == "__main__":
                         "-d",
                         type=str,
                         default='all',
-                        choices=['all', 'metaicl', 'dialog'])
+                        choices=['all', 'pretrain', 'metaicl', 'dialog'])
     parser.add_argument("--eval_path", "-e", type=str, help="Compression adapter path")
     parser.add_argument(
         "--eval_name",

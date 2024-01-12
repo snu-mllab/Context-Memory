@@ -20,6 +20,8 @@ Supported Models: **LLaMA / LLaMA-2-chat**
 - Please convert the LLaMA weights into Hugging Face Transformers format using the [guideline](https://huggingface.co/docs/transformers/main/model_doc/llama).
 - In [`./path_config.py`](https://github.com/snu-mllab/Context-Memory/blob/main/path_config.py), please set directory configurations.
 
+We provide download codes for datasets and models (see below). 
+- When gdown incurs errors, please directly download files from [dataset link](https://drive.google.com/drive/folders/16bG_zCiEL27h5vVL_QN0OW3PH1iQdlf_?usp=drive_link) and [model link](https://drive.google.com/drive/folders/1qutEXBekpUTaE8fJhjKT-5DMzXpN55cx?usp=drive_link) (put model subfolders in SAVEPATH and dataset subfolders in DATAPATH from path_config.py). 
 
 ## Demo: Interactive inference with compressed memory
 ```
@@ -28,6 +30,7 @@ python interact.py -i -m llama-7b --eval_name [concat_recur/merge_recur]
 ```
 - This will launch an interactive chat system based on LLaMA-7B:  
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=50%>
+- [Update 24.01.12] We release an compression adapter for general purpose which is trained on the mixture of datasets including samples from [RedPajama-v2](https://www.together.ai/blog/redpajama-data-v2) and [LMSYS-Chat-1M](https://huggingface.co/datasets/lmsys/lmsys-chat-1m) (# training samples is 500k). To test the adapter, set `--dataset pretrain` for download.py and interact.py.
 
 ## Dataset 
 - We provide tokenized data of [MetaICL](https://github.com/facebookresearch/MetaICL) and [SODA](https://github.com/skywalker023/sodaverse) for LLaMA. Smaller datasets including DailyDialog will be downloaded and tokenized automatically during training. 
@@ -35,6 +38,7 @@ python interact.py -i -m llama-7b --eval_name [concat_recur/merge_recur]
 ```
 python download.py --type data --dataset [metaicl/soda]
 ```
+- In our codes, `--dataset all` refers to the mixture of MetaICL and SODA.
 - To use other datasets, you should make a collator function. Check for `./src/data`.
 
 ## Training
@@ -45,7 +49,6 @@ python download.py --type data --dataset [metaicl/soda]
 python run.py --train --dataset [all/metaicl/dialog/lamp] --model llama-7b \
     --comp_type no
 ```
-- The **'all' dataset** refers to the mixture of MetaICL and SODA.
 - The LoRA adapters will be saved at `{SAVEPATH}/{dataset}/llama-7b-no`. Set SAVEPATH in path_config.py.
 - Then we train our compression adapter as
 ```

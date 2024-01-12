@@ -55,7 +55,7 @@ def run(args):
             if (f"-ntok{i}" in args.eval_path):
                 args.n_tok = i
                 print(f"Update n_tok as {args.n_tok}")
-                
+
         if "concat_recur" in args.eval_path:
             args.attn_type = "concat_recur"
         elif "merge_recur" in args.eval_path:
@@ -107,8 +107,10 @@ def run(args):
         base_cmd = f"{base_cmd} training.learning_rate={args.lr}"
 
     ## Conditional Lora
-    if not args.cond_lora: base_cmd = f"{base_cmd} training.comp.cond_lora=false"
-    if not args.sepembed: base_cmd = f"{base_cmd} training.comp.separate_embed=false"
+    if not args.cond_lora:
+        base_cmd = f"{base_cmd} training.comp.cond_lora=false"
+    if not args.sepembed:
+        base_cmd = f"{base_cmd} training.comp.separate_embed=false"
 
     if args.seed != 42:
         base_cmd = f"{base_cmd} training.seed={args.seed}"
@@ -247,20 +249,28 @@ if __name__ == "__main__":
                         default=1,
                         help="Number of COMP tokens for each time step")
     # Data
+    ## Notes on datasets ##
+    ## 'all' refers to the mixture of MetaICL and SODA.
     parser.add_argument("--dataset",
                         "-d",
                         default='metaicl',
-                        choices=['all', 'metaicl', 'dialog', 'soda', 'lamp'],
-                        help="Training/evaluation dataset. 'all' refers to the mixture of MetaICL and SODA.")
-    parser.add_argument("--pretrain_dataset",
-                        type=str,
-                        default=None,
-                        help="Training dataset of the evaluation model. Use when the training dataset is differ from the evaluation dataset.")
+                        choices=['all', 'metaicl', 'dialog', 'soda', 'lamp', 'pretrain'],
+                        help="Training/evaluation dataset.")
+    parser.add_argument(
+        "--pretrain_dataset",
+        type=str,
+        default=None,
+        help=
+        "Training dataset of the evaluation model. Use when the training dataset is differ from the evaluation dataset."
+    )
     parser.add_argument("--k",
                         type=int,
                         default=16,
                         help="Max number of context time steps (metaicl, LaMP)")
-    parser.add_argument("--max_length", type=int, default=1024, help="Max token length for each data sample")
+    parser.add_argument("--max_length",
+                        type=int,
+                        default=1024,
+                        help="Max token length for each data sample")
     parser.add_argument("--generation_max_length",
                         type=int,
                         default=-1,
@@ -272,10 +282,11 @@ if __name__ == "__main__":
     parser.add_argument("--per_device_train_batch_size", '-b', type=int, default=-1)
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     # Eval
-    parser.add_argument("--load_path",
-                        type=str,
-                        default='',
-                        help="Full-context finetuned adapter path (not required for default LLaMA-2-chat)")
+    parser.add_argument(
+        "--load_path",
+        type=str,
+        default='',
+        help="Full-context finetuned adapter path (not required for default LLaMA-2-chat)")
     parser.add_argument("--eval_path", type=str, default='', help="Compression adapter path")
     parser.add_argument("--no_wandb", action="store_true")
     parser.add_argument("--override")
