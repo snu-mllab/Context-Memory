@@ -30,10 +30,10 @@ python interact.py -i -m llama-7b --eval_name [concat_recur/merge_recur]
 ```
 - This will launch an interactive chat system based on LLaMA-7B:  
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=50%>
-- [Update 24.01.12] We release an compression adapter for general purpose which is trained on the mixture of datasets including samples from [RedPajama-v2](https://www.together.ai/blog/redpajama-data-v2) and [LMSYS-Chat-1M](https://huggingface.co/datasets/lmsys/lmsys-chat-1m) (# training samples is 500k). To test the adapter, set `--dataset pretrain` for download.py and interact.py.
+- [Update 24.01.12] We release a compression adapter for the general purpose which is trained on the mixture of datasets including samples from [RedPajama-v2](https://www.together.ai/blog/redpajama-data-v2) and [LMSYS-Chat-1M](https://huggingface.co/datasets/lmsys/lmsys-chat-1m) (# training samples is 500k). To test the adapter, set `--dataset pretrain` for download.py and interact.py.
 
 ## Dataset 
-- We provide tokenized data of [MetaICL](https://github.com/facebookresearch/MetaICL) and [SODA](https://github.com/skywalker023/sodaverse) for LLaMA. Smaller datasets including DailyDialog will be downloaded and tokenized automatically during training. 
+- We provide tokenized data of [MetaICL](https://github.com/facebookresearch/MetaICL) and [SODA](https://github.com/skywalker023/sodaverse) for LLaMA. Smaller datasets, e.g., DailyDialog, will be downloaded and tokenized automatically during training. 
 - To download tokenized datasets, run
 ```
 python download.py --type data --dataset [metaicl/soda]
