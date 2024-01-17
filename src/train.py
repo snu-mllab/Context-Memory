@@ -32,7 +32,7 @@ from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
 
 from .arguments import Arguments, global_setup
-from .integrations import CustomWandbCallback, EvaluateFirstStepCallback
+from .callbacks import CustomWandbCallback, EvaluateFirstStepCallback
 from .trainer_seq2seq import CompSeq2SeqTrainer
 from .model import load_model, check_model, get_traininable_state_dict, load_pretrained
 from .data.load import load_dataset_metric_collator
@@ -50,8 +50,8 @@ logger = logging.getLogger(__name__)
 def detect_last_checkpoint(args):
     # Detecting last checkpoint.
     last_checkpoint = None
-    if (os.path.isdir(args.training.output_dir) and args.training.do_train
-            and not args.training.overwrite_output_dir):
+    if (os.path.isdir(args.training.output_dir) and args.training.do_train and
+            not args.training.overwrite_output_dir):
         last_checkpoint = get_last_checkpoint(args.training.output_dir)
         if last_checkpoint is None and len(os.listdir(args.training.output_dir)) > 0:
             existing_files = os.listdir(args.training.output_dir)

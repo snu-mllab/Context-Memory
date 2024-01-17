@@ -35,7 +35,6 @@ from transformers.trainer_utils import (
     speed_metrics,
 )
 from transformers.utils import is_torch_tpu_available, logging
-from tqdm import tqdm
 from .data.lamp.utils import classification_candidates
 
 logger = logging.get_logger(__name__)

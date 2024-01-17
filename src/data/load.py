@@ -178,7 +178,6 @@ def load_dataset_metric_collator(args, model, tokenizer):
             pad_token=tokenizer.pad_token_id,
             k=args.data.k,
         )
-        lamp_index = int(args.data.dataset_name[4])
         compute_metrics = lamp.metrics.get_compute_metrics_fn(comp_token=comp_token,
                                                               tokenizer=tokenizer,
                                                               args=args)
@@ -187,9 +186,6 @@ def load_dataset_metric_collator(args, model, tokenizer):
         batch += [eval_dataset['validation'][0]]
         print("TEST collator")
         test_collator(collator, batch, tokenizer, args.is_llama)
-        # if lamp_index in [1, 2, 3]:
-        #     print("TEST collator for classification")
-        #     test_collator(collator.collate_for_classification, batch, tokenizer, args.is_llama)
 
     else:
         raise NotImplementedError(f"Unknown dataset name {args.data.dataset_name}")

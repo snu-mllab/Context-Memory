@@ -35,12 +35,14 @@ logger = logging.get_logger(__name__)
 
 
 class LinearMask(nn.Linear):
+
     def forward(self, input: Tensor, comp_mask=None) -> Tensor:
         return F.linear(input, self.weight, self.bias)
 
 
 class LlamaAttention(nn.Module):
     """Multi-headed attention from 'Attention Is All You Need' paper"""
+
     def __init__(self, config: LlamaConfig):
         super().__init__()
         self.config = config
@@ -175,6 +177,7 @@ class LlamaAttention(nn.Module):
 
 
 class LlamaDecoderLayer(nn.Module):
+
     def __init__(self, config: LlamaConfig):
         super().__init__()
         self.hidden_size = config.hidden_size
@@ -239,13 +242,13 @@ class LlamaDecoderLayer(nn.Module):
         hidden_states = self.mlp(hidden_states)
         hidden_states = residual + hidden_states
 
-        outputs = (hidden_states, )
+        outputs = (hidden_states,)
 
         if output_attentions:
-            outputs += (self_attn_weights, )
+            outputs += (self_attn_weights,)
 
         if use_cache:
-            outputs += (present_key_value, )
+            outputs += (present_key_value,)
 
         return outputs
 
@@ -287,6 +290,7 @@ class LlamaModelCCM(LlamaPreTrainedModel):
     Args:
         config: LlamaConfig
     """
+
     def __init__(self, config: LlamaConfig):
         super().__init__(config)
         self.padding_idx = config.pad_token_id
@@ -513,7 +517,10 @@ class LlamaModelCCM(LlamaPreTrainedModel):
                 position_ids.masked_fill_(attention_mask == 0, 1)
                 position_ids = position_ids[:, past_key_values_length:]
             else:
-                # Do not count compression tokens for position ids
+                # Position ids with comp tokens
+                ## Note: "update_position_ids" does not aware of past_key_values_length
+                ## So you should properly set "pos_id_offset" when using past_key_values with compression
+                ## (check inference.py test function for example)
                 position_ids = update_position_ids(comp_mask,
                                                    self.comp_token,
                                                    attention_mask[:, -seq_length:],
@@ -560,13 +567,14 @@ class LlamaModelCCM(LlamaPreTrainedModel):
 
         for idx, decoder_layer in enumerate(self.layers):
             if output_hidden_states:
-                all_hidden_states += (hidden_states, )
+                all_hidden_states += (hidden_states,)
 
             past_key_value = (past_key_values[idx] if past_key_values is not None else None)
 
             if self.gradient_checkpointing and self.training:
 
                 def create_custom_forward(module):
+
                     def custom_forward(*inputs):
                         # None for past_key_value
                         return module(*inputs, output_attentions, None)
@@ -601,16 +609,16 @@ class LlamaModelCCM(LlamaPreTrainedModel):
             hidden_states = layer_outputs[0]
 
             if use_cache:
-                next_decoder_cache += (layer_outputs[2 if output_attentions else 1], )
+                next_decoder_cache += (layer_outputs[2 if output_attentions else 1],)
 
             if output_attentions:
-                all_self_attns += (layer_outputs[1], )
+                all_self_attns += (layer_outputs[1],)
 
         hidden_states = self.norm(hidden_states)
 
         # add hidden states from the last decoder layer
         if output_hidden_states:
-            all_hidden_states += (hidden_states, )
+            all_hidden_states += (hidden_states,)
 
         next_cache = next_decoder_cache if use_cache else None
         if not return_dict:
@@ -806,8 +814,8 @@ class LlamaForCausalLM_CCM(LlamaPreTrainedModel, GistGenerationMixin):
             loss = loss_fct(shift_logits.view(-1, self.config.vocab_size), shift_labels.view(-1))
 
         if not return_dict:
-            output = (logits, ) + outputs[1:]
-            return (loss, ) + output if loss is not None else output
+            output = (logits,) + outputs[1:]
+            return (loss,) + output if loss is not None else output
 
         return CausalLMOutputWithPast(
             loss=loss,
@@ -894,5 +902,5 @@ class LlamaForCausalLM_CCM(LlamaPreTrainedModel, GistGenerationMixin):
         reordered_past = ()
         for layer_past in past_key_values:
             reordered_past += (tuple(
-                past_state.index_select(0, beam_idx) for past_state in layer_past), )
+                past_state.index_select(0, beam_idx) for past_state in layer_past),)
         return reordered_past
