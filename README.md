@@ -60,7 +60,7 @@ python run.py --train --dataset [all/metaicl/dialog/lamp] --model llama-7b \
 - For aligned models such as LLaMA-2-chat, it's okay to skip the previous finetuning step with `--comp_type no`. In this case, run the training codes without `--load_path`. 
 
 ## Evaluation
-- We release optimized adapters via Google Drive. To download, run
+- We release optimized adapters via [Google Drive](https://drive.google.com/drive/folders/1qutEXBekpUTaE8fJhjKT-5DMzXpN55cx?usp=drive_link). To download, run
 ```
 python download.py --type model --dataset [all/metaicl/dialog/lamp]
 ```
