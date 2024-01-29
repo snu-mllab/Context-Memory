@@ -17,22 +17,8 @@ from .arch.ccm_t5 import T5ForConditionalGeneration_CCM
 from .arch.gist_llama import GistLlamaForCausalLM
 from .arch.ccm_llama import LlamaForCausalLM_CCM
 
-from .utils import SeparatedEmbedding
+from .utils import SeparatedEmbedding, transpose
 from . import peft_custom
-
-
-def check_model(model, peft=False):
-    mem = torch.cuda.memory_allocated() / 10**6
-    print(f"\nCheck model: {model.dtype}, {model.device} (current Mem {mem:.0f} MB)")
-    for name, param in model.named_parameters():
-        if param.requires_grad:
-            print(name)
-            break
-    if peft:
-        model.print_trainable_parameters()
-    else:
-        pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-        print(f"Number of trainable parameters: {pytorch_total_params:,}")
 
 
 def get_traininable_state_dict(model, state_dict, args):
@@ -54,7 +40,6 @@ def get_lora(args, model):
     if args.training.eval_path != '':
         config_path = args.training.eval_path
 
-    # Only for Llama
     if config_path is None:
         # Initilzie LoRA
         TARGET_MODULES = args.training.target_modules.split(",")
@@ -136,10 +121,6 @@ def get_conditional_lora(args, model):
     return model
 
 
-def transpose(weight, fan_in_fan_out):
-    return weight.T if fan_in_fan_out else weight
-
-
 def load_lora_weight(path, model, merge=False):
     # Embedding can be included
     lora_weight_saved = torch.load(os.path.join(path, 'pytorch_model.bin'))
@@ -212,6 +193,9 @@ def load_pretrained(path, model, lora=False, merge=False):
 
 def load_model(args):
     print("\n==== LOAD MODEL, TOKENIZER ====")
+    model_path = args.model.model_name_or_path
+
+    ## Config
     config_kwargs = {
         "cache_dir": args.model.cache_dir,
         "revision": args.model.model_revision,
@@ -219,93 +203,79 @@ def load_model(args):
     }
     if args.model.config_name:
         config = AutoConfig.from_pretrained(args.model.config_name, **config_kwargs)
-    elif args.model.model_name_or_path:
-        config = AutoConfig.from_pretrained(args.model.model_name_or_path, **config_kwargs)
+    elif model_path:
+        config = AutoConfig.from_pretrained(model_path, **config_kwargs)
     else:
         raise ValueError("Check model_name!")
 
-    is_t5 = any(t in args.model.model_name_or_path.lower() for t in ("t5", "tk"))
-    is_llama = any(t in args.model.model_name_or_path.lower() for t in ("llama", ))
-
-    args.is_t5 = is_t5
-    args.is_llama = is_llama
-
-    tokenizer_kwargs = {
-        "cache_dir": args.model.cache_dir,
-        "use_fast": args.model.use_fast_tokenizer,
-        "revision": args.model.model_revision,
-        "use_auth_token": True if args.model.use_auth_token else None,
-    }
+    ## Tokenizer
+    args.is_t5 = any(t in model_path.lower() for t in ("t5", "tk"))
+    args.is_llama = any(t in model_path.lower() for t in ("llama",))
     if args.model.tokenizer_name:
-        tokenizer = AutoTokenizer.from_pretrained(args.model.tokenizer_name, **tokenizer_kwargs)
-    elif args.model.model_name_or_path:
-        if is_llama:
-            tokenizer = LlamaTokenizer.from_pretrained(args.model.model_name_or_path,
-                                                       **tokenizer_kwargs)
+        tokenizer = AutoTokenizer.from_pretrained(args.model.tokenizer_name,
+                                                  use_fast=args.model.use_fast_tokenizer,
+                                                  **config_kwargs)
+    elif model_path:
+        if args.is_llama:
+            tokenizer = LlamaTokenizer.from_pretrained(model_path,
+                                                       use_fast=args.model.use_fast_tokenizer,
+                                                       **config_kwargs)
             tokenizer.pad_token = tokenizer.eos_token
             tokenizer.padding_side = "left"
         else:
-            tokenizer = AutoTokenizer.from_pretrained(args.model.model_name_or_path,
-                                                      **tokenizer_kwargs)
+            tokenizer = AutoTokenizer.from_pretrained(model_path,
+                                                      use_fast=args.model.use_fast_tokenizer,
+                                                      **config_kwargs)
     else:
-        raise ValueError(
-            "You are instantiating a new tokenizer from scratch. This is not supported "
-            "by this script."
-            "You can do it from another script, save it, and load it from here, using "
-            "--tokenizer_name.")
+        raise ValueError("check tokenizer_name or model_name_or_path")
 
-    # Whether or not use positional encoding for comp tokens
+    # Positional encoding type for <COMP> tokens
     config.comp_relative_embedding = args.training.comp.relative_embedding
     config.attn_type = args.training.comp.attn_type
     print(f"Attention type: {config.attn_type}")
 
-    if is_t5:
+    ## Model
+    if args.is_t5:
         model_cls = GistT5ForConditionalGeneration
         if args.training.comp.cond_lora:
             model_cls = T5ForConditionalGeneration_CCM
             print("Use conditional LoRA!")
-    elif is_llama:
+    elif args.is_llama:
         model_cls = GistLlamaForCausalLM
         if args.training.comp.cond_lora:
             model_cls = LlamaForCausalLM_CCM
             print("Use conditional LoRA!")
     else:
-        raise ValueError(f"Model type {args.model.model_name_or_path} not supported")
+        raise ValueError(f"Model type {model_path} not supported")
 
     if args.model.pretrained:
-        if args.training.peft:
-            dtype = torch.float16
-        else:
-            dtype = torch.float32
-
+        dtype = torch.float16 if args.training.peft else torch.float32
         model = model_cls.from_pretrained(
-            args.model.model_name_or_path,
-            from_tf=bool(".ckpt" in args.model.model_name_or_path),
+            model_path,
+            from_tf=bool(".ckpt" in model_path),
             config=config,
-            cache_dir=args.model.cache_dir,
-            revision=args.model.model_revision,
             torch_dtype=dtype,
             device_map='auto',
-            use_auth_token=True if args.model.use_auth_token else None,
+            **config_kwargs,
         )
-        print(f"Load {args.model.model_name_or_path}")
+        print(f"Load {model_path}")
 
-        if is_llama:
+        if args.is_llama:
             model.config.pad_token_id = tokenizer.pad_token_id = 0
             model.config.bos_token_id = tokenizer.bos_token_id = 1
             model.config.eos_token_id = tokenizer.eos_token_id = 2
     else:
         model = model_cls(config)
 
+    # Load base model
     if args.training.load_path != '':
         load_pretrained(args.training.load_path, model, lora=args.training.peft, merge=True)
 
-    # Update comp tokens
+    # Update comp tokens and LoRA for compression
     tokenizer.comp_token_id = tokenizer.sum_token_id = None
     if args.training.comp.add_comp_token:
         update_compression_token(args, model, tokenizer)
 
-    # If use conditional LoRA, then skip this
     if args.training.peft and not args.training.comp.cond_lora:
         model = get_lora(args, model)
     elif args.training.comp.cond_lora:
@@ -313,15 +283,15 @@ def load_model(args):
 
     print("pad, bos, eos, comp token id: ", tokenizer.pad_token_id, tokenizer.bos_token_id,
           tokenizer.eos_token_id, tokenizer.comp_token_id)
-
     return model, tokenizer
 
 
 def update_compression_token(args, model, tokenizer):
     n_tok = args.training.comp.num_comp_tokens
     if "merge" in args.training.comp.attn_type:
-        n_tok *= 2
+        n_tok *= 2  # For sum tokens which have merged comp token keys/values
 
+    # Check if COMP token is already initialized
     if args.is_t5 and len(tokenizer) == PRETRAINED_VOCAB_SIZE_T5 + n_tok:
         assert model.shared.weight.shape[0] == PRETRAINED_VOCAB_SIZE_T5 + n_tok
 
@@ -329,14 +299,11 @@ def update_compression_token(args, model, tokenizer):
         assert (model.model.embed_tokens.weight.shape[0] == PRETRAINED_VOCAB_SIZE_LLAMA + n_tok)
         assert model.lm_head.weight.shape[0] == PRETRAINED_VOCAB_SIZE_LLAMA + n_tok
 
+    # Initialize COMP token
     else:
-        if n_tok == 1:
-            tokenizer.add_special_tokens({"additional_special_tokens": ["<COMP>"]})
-        else:
-            tokenizer.add_special_tokens(
-                {"additional_special_tokens": [f"<COMP{k}>" for k in range(n_tok)]})
+        tokenizer.add_special_tokens(
+            {"additional_special_tokens": [f"<COMP{k}>" for k in range(n_tok)]})
 
-        # Initialize COMP token
         if args.training.comp.separate_embed:
             model.resize_token_embeddings(len(tokenizer) - n_tok)
 
@@ -387,7 +354,6 @@ def update_compression_token(args, model, tokenizer):
 
                         model.lm_head.weight.requires_grad = False
 
-    tokenizer.sum_token_id = None
     if "merge" in args.training.comp.attn_type:
         tokenizer.comp_token_id = tokenizer.additional_special_tokens_ids[:n_tok // 2]
         tokenizer.sum_token_id = tokenizer.additional_special_tokens_ids[n_tok // 2:]

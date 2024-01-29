@@ -119,8 +119,6 @@ class CompSeq2SeqTrainer(Seq2SeqTrainer):
             gen_kwargs["attention_mask_comp"] = inputs.get("attention_mask_comp", None)
         if "cross_attention_mask" in inputs:
             gen_kwargs["cross_attention_mask"] = inputs.get("cross_attention_mask", None)
-        if "comp_results" in inputs:
-            gen_kwargs["comp_results"] = inputs.get("comp_results", None)
         if "past_key_values" in inputs:
             gen_kwargs["past_key_values"] = inputs.get("past_key_values", None)
         if "pos_id_offset" in inputs:

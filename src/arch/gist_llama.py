@@ -25,9 +25,7 @@ from transformers.models.llama.modeling_llama import (
     apply_rotary_pos_emb,
 )
 from transformers.utils import logging
-
 from .generation_utils import GistGenerationMixin
-from .gist_caching import CompressedKV
 
 from ..data.mask import get_comp_mask, reverse_cumsum
 
@@ -35,12 +33,14 @@ logger = logging.get_logger(__name__)
 
 
 class LinearMask(nn.Linear):
+
     def forward(self, input: Tensor, comp_mask=None) -> Tensor:
         return F.linear(input, self.weight, self.bias)
 
 
 class LlamaAttention(nn.Module):
     """Multi-headed attention from 'Attention Is All You Need' paper"""
+
     def __init__(self, config: LlamaConfig):
         super().__init__()
         self.config = config
@@ -164,6 +164,7 @@ class LlamaAttention(nn.Module):
 
 
 class LlamaDecoderLayer(nn.Module):
+
     def __init__(self, config: LlamaConfig):
         super().__init__()
         self.hidden_size = config.hidden_size
@@ -228,13 +229,13 @@ class LlamaDecoderLayer(nn.Module):
         hidden_states = self.mlp(hidden_states)
         hidden_states = residual + hidden_states
 
-        outputs = (hidden_states, )
+        outputs = (hidden_states,)
 
         if output_attentions:
-            outputs += (self_attn_weights, )
+            outputs += (self_attn_weights,)
 
         if use_cache:
-            outputs += (present_key_value, )
+            outputs += (present_key_value,)
 
         return outputs
 
@@ -276,6 +277,7 @@ class GistLlamaModel(LlamaPreTrainedModel):
     Args:
         config: LlamaConfig
     """
+
     def __init__(self, config: LlamaConfig):
         super().__init__(config)
         self.padding_idx = config.pad_token_id
@@ -384,7 +386,6 @@ class GistLlamaModel(LlamaPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-        comp_results: Optional[torch.Tensor] = None,
         pos_id_offset: Optional[torch.LongTensor] = None,
     ) -> Union[Tuple, BaseModelOutputWithPast]:
         r"""
@@ -469,13 +470,6 @@ class GistLlamaModel(LlamaPreTrainedModel):
             raise ValueError(
                 "You have to specify either decoder_input_ids or decoder_inputs_embeds")
 
-        if comp_results is not None:
-            if past_key_values is not None or pos_id_offset is not None:
-                raise ValueError("You should pass in either comp_results alone, or "
-                                 "past_key_values and pos_id_offset, not both.")
-            past_key_values = comp_results.past_key_values
-            pos_id_offset = comp_results.comp_indices
-
         past_key_values_length = 0
         seq_length_with_past = seq_length
         if past_key_values is not None:
@@ -551,13 +545,14 @@ class GistLlamaModel(LlamaPreTrainedModel):
 
         for idx, decoder_layer in enumerate(self.layers):
             if output_hidden_states:
-                all_hidden_states += (hidden_states, )
+                all_hidden_states += (hidden_states,)
 
             past_key_value = (past_key_values[idx] if past_key_values is not None else None)
 
             if self.gradient_checkpointing and self.training:
 
                 def create_custom_forward(module):
+
                     def custom_forward(*inputs):
                         # None for past_key_value
                         return module(*inputs, output_attentions, None)
@@ -592,16 +587,16 @@ class GistLlamaModel(LlamaPreTrainedModel):
             hidden_states = layer_outputs[0]
 
             if use_cache:
-                next_decoder_cache += (layer_outputs[2 if output_attentions else 1], )
+                next_decoder_cache += (layer_outputs[2 if output_attentions else 1],)
 
             if output_attentions:
-                all_self_attns += (layer_outputs[1], )
+                all_self_attns += (layer_outputs[1],)
 
         hidden_states = self.norm(hidden_states)
 
         # add hidden states from the last decoder layer
         if output_hidden_states:
-            all_hidden_states += (hidden_states, )
+            all_hidden_states += (hidden_states,)
 
         next_cache = next_decoder_cache if use_cache else None
         if not return_dict:
@@ -669,7 +664,6 @@ class GistLlamaForCausalLM(LlamaPreTrainedModel, GistGenerationMixin):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-        comp_results: Optional[CompressedKV] = None,
         pos_id_offset: Optional[torch.LongTensor] = None,
         **kwargs,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
@@ -780,7 +774,6 @@ class GistLlamaForCausalLM(LlamaPreTrainedModel, GistGenerationMixin):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
-            comp_results=comp_results,
             pos_id_offset=pos_id_offset,
         )
 
@@ -797,8 +790,8 @@ class GistLlamaForCausalLM(LlamaPreTrainedModel, GistGenerationMixin):
             loss = loss_fct(shift_logits.view(-1, self.config.vocab_size), shift_labels.view(-1))
 
         if not return_dict:
-            output = (logits, ) + outputs[1:]
-            return (loss, ) + output if loss is not None else output
+            output = (logits,) + outputs[1:]
+            return (loss,) + output if loss is not None else output
 
         return CausalLMOutputWithPast(
             loss=loss,
@@ -885,5 +878,5 @@ class GistLlamaForCausalLM(LlamaPreTrainedModel, GistGenerationMixin):
         reordered_past = ()
         for layer_past in past_key_values:
             reordered_past += (tuple(
-                past_state.index_select(0, beam_idx) for past_state in layer_past), )
+                past_state.index_select(0, beam_idx) for past_state in layer_past),)
         return reordered_past

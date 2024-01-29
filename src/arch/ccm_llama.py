@@ -25,9 +25,7 @@ from transformers.models.llama.modeling_llama import (
     apply_rotary_pos_emb,
 )
 from transformers.utils import logging
-
 from .generation_utils import GistGenerationMixin
-from .gist_caching import CompressedKV
 
 from ..data.mask import get_comp_mask
 
@@ -395,68 +393,8 @@ class LlamaModelCCM(LlamaPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-        comp_results: Optional[torch.Tensor] = None,
         pos_id_offset: Optional[torch.LongTensor] = None,
     ) -> Union[Tuple, BaseModelOutputWithPast]:
-        r"""
-        Args:
-            input_ids (`torch.LongTensor` of shape `(batch_size, sequence_length)`):
-                Indices of input sequence tokens in the vocabulary. Padding will
-                be ignored by default should you provide it.
-
-                Indices can be obtained using [`AutoTokenizer`]. See
-                [`PreTrainedTokenizer.encode`] and
-                [`PreTrainedTokenizer.__call__`] for details.
-
-                [What are input IDs?](../glossary#input-ids)
-            attention_mask (`torch.Tensor` of shape `(batch_size,
-                    sequence_length)`, *optional*):
-                Mask to avoid performing attention on padding token indices.
-                Mask values selected in `[0, 1]`:
-
-                - 1 for tokens that are **not masked**,
-                - 0 for tokens that are **masked**.
-
-                [What are attention masks?](../glossary#attention-mask)
-            past_key_values (`tuple(tuple(torch.FloatTensor))`, *optional*,
-                    returned when `use_cache=True` is passed or when
-                    `config.use_cache=True`):
-                Tuple of `tuple(torch.FloatTensor)` of length `config.n_layers`,
-                with each tuple having 2 tensors of shape `(batch_size,
-                num_heads, sequence_length, embed_size_per_head)`) and 2
-                additional tensors of
-
-                Contains pre-computed hidden-states (key and values in the
-                self-attention blocks and in the cross-attention blocks) that
-                can be used (see `past_key_values` input) to speed up sequential
-                decoding.
-
-                If `past_key_values` are used, the user can optionally input
-                only the last `decoder_input_ids` (those that don't have their
-                past key value states given to this model) of shape
-                `(batch_size, 1)` instead of all `decoder_input_ids` of shape
-                `(batch_size, sequence_length)`.
-            use_cache (`bool`, *optional*):
-                If set to `True`, `past_key_values` key value states are
-                returned and can be used to speed up decoding (see
-                `past_key_values`).
-            inputs_embeds (`torch.FloatTensor` of shape `(batch_size,
-                    sequence_length, hidden_size)`, *optional*):
-                Optionally, instead of passing `input_ids` you can choose to
-                directly pass an embedded representation.  This is useful if you
-                want more control over how to convert `input_ids` indices into
-                associated vectors than the model's internal embedding lookup
-                matrix.
-            output_attentions (`bool`, *optional*):
-                Whether or not to return the attentions tensors of all attention
-                layers. See `attentions` under returned tensors for more detail.
-            output_hidden_states (`bool`, *optional*):
-                Whether or not to return the hidden states of all layers. See
-                `hidden_states` under returned tensors for more detail.
-            return_dict (`bool`, *optional*):
-                Whether or not to return a [`~utils.ModelOutput`] instead of a
-                plain tuple.
-        """
         #####################################################
         ##### Modified: Get compression masks for conditional inference and memory update #####
         comp_mask, sum_mask, sum_attn_mask = self.get_comp_mask(input_ids)
@@ -481,13 +419,6 @@ class LlamaModelCCM(LlamaPreTrainedModel):
         else:
             raise ValueError(
                 "You have to specify either decoder_input_ids or decoder_inputs_embeds")
-
-        if comp_results is not None:
-            if past_key_values is not None or pos_id_offset is not None:
-                raise ValueError("You should pass in either comp_results alone, or "
-                                 "past_key_values and pos_id_offset, not both.")
-            past_key_values = comp_results.past_key_values
-            pos_id_offset = comp_results.comp_indices
 
         past_key_values_length = 0
         seq_length_with_past = seq_length
@@ -686,7 +617,6 @@ class LlamaForCausalLM_CCM(LlamaPreTrainedModel, GistGenerationMixin):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-        comp_results: Optional[CompressedKV] = None,
         pos_id_offset: Optional[torch.LongTensor] = None,
         **kwargs,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
@@ -758,6 +688,9 @@ class LlamaForCausalLM_CCM(LlamaPreTrainedModel, GistGenerationMixin):
             return_dict (`bool`, *optional*):
                 Whether or not to return a [`~utils.ModelOutput`] instead of a
                 plain tuple.
+            pos_id_offset ('torch.LongTensor', *optional*): 
+                Offset for position_ids. This might required when using
+                past_key_values with compression. 
 
         Returns:
 
@@ -797,7 +730,6 @@ class LlamaForCausalLM_CCM(LlamaPreTrainedModel, GistGenerationMixin):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
-            comp_results=comp_results,
             pos_id_offset=pos_id_offset,
         )
 

@@ -8,8 +8,7 @@ import os.path as osp
 import socket
 import sys
 from dataclasses import dataclass, field
-from typing import Optional, Union
-from pathlib import Path
+from typing import Optional
 
 import datasets
 import transformers
@@ -68,15 +67,6 @@ class WandBArguments:
 
 
 @dataclass
-class LaMPArguments:
-    num_shot: int = 1
-    cutoff_ratio: float = 0.9
-    gist: str = "gist"
-    recur_cross_attn: bool = False
-    seperate_cross_attention: bool = False
-
-
-@dataclass
 class CompressionTrainingArguments(TrainingArguments):
     """
     Fix some of the types of TrainingArguments so that OmegaConf typechecks
@@ -130,8 +120,6 @@ class CompressionTrainingArguments(TrainingArguments):
     max_source_length: int = 256
     max_target_length: int = 256
 
-    lamp: LaMPArguments = LaMPArguments()
-
     def __post_init__(self):
         # Don't run post-init until ready to convert to TrainingArgs
         if self._run_post_init:
@@ -148,28 +136,22 @@ class CompSeq2SeqTrainingArguments(CompressionTrainingArguments):
     generation_max_length: Optional[int] = field(
         default=None,
         metadata={
-            "help":
-            ("The `max_length` to use on each evaluation loop when `predict_with_generate=True`. Will default "
-             "to the `max_length` value of the model configuration.")
+            "help": (
+                "The `max_length` to use on each evaluation loop when `predict_with_generate=True`. Will default "
+                "to the `max_length` value of the model configuration.")
         },
     )
+    eval_rouge: bool = False
+
     generation_num_beams: Optional[int] = field(
         default=None,
         metadata={
-            "help":
-            ("The `num_beams` to use on each evaluation loop when `predict_with_generate=True`. Will default "
-             "to the `num_beams` value of the model configuration.")
+            "help": (
+                "The `num_beams` to use on each evaluation loop when `predict_with_generate=True`. Will default "
+                "to the `num_beams` value of the model configuration.")
         },
     )
     generation_config: Optional[str] = field(default=None)
-
-    # generation_config: Optional[Union[str, Path, GenerationConfig]] = field(
-    #     default=None,
-    #     metadata={
-    #         "help":
-    #         "Model id, file path or url pointing to a GenerationConfig json file, to use during prediction."
-    #     },
-    # )
 
     def to_dict(self):
         """
@@ -270,9 +252,8 @@ class DataTrainingArguments:
     validation_file: Optional[str] = field(
         default=None,
         metadata={
-            "help":
-            "An optional input evaluation data file to evaluate the perplexity "
-            "on (a text file)."
+            "help": "An optional input evaluation data file to evaluate the perplexity "
+                    "on (a text file)."
         },
     )
     max_train_samples: Optional[int] = field(

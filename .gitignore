@@ -151,6 +151,8 @@ llama-7b
 slurm/
 data/results
 data/benchmarking
+dataset
+result
 
 # Misc
 clean.sh

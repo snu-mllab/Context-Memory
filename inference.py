@@ -1,41 +1,24 @@
 import argparse
 import os
-from path_config import SAVEPATH, CACHEDIR
-
-
-def tf_str(tf):
-    s = "true" if tf else "false"
-    return s
+from path_config import SAVEPATH, CACHEDIR, model_path, map_config
+from run import parse_path
 
 
 def run(args):
-
-    base_cmd = f"python -B -m src.inference"
+    if args.interactive:
+        base_cmd = f"python -B -m src.interact"
+    else:
+        base_cmd = f"python -B -m src.test"
 
     # Config file
     model = args.model
-    base_cmd = f"{base_cmd} +{args.dataset}={model}"
+    base_cmd = f"{base_cmd} +{args.dataset}={map_config(model)} model.model_name_or_path={model_path(model)}"
     base_cmd = f"{base_cmd} training.do_train=false wandb.log=false"
 
     # Compression type
-    attn_type = None
-    if "-merge-" in args.eval_path:
-        attn_type = "merge"
-    elif "-merge_recur-" in args.eval_path:
-        attn_type = "merge_recur"
-    elif "-concat-" in args.eval_path:
-        attn_type = "concat"
-    elif "-concat_recur-" in args.eval_path:
-        attn_type = "concat_recur"
-    else:
-        AssertionError("Invalid compression type in eval_path")
-
+    attn_type, n_tok = parse_path(args.eval_path)
     base_cmd = f"{base_cmd} training.comp.comp_type=online"
     base_cmd = f"{base_cmd} training.comp.attn_type={attn_type}"
-
-    for i in range(1, 17):
-        if f"-ntok{i}" in args.eval_path:
-            n_tok = i
     base_cmd = f"{base_cmd} training.comp.num_comp_tokens={n_tok}"
 
     # Evaluation path
@@ -54,9 +37,8 @@ def run(args):
 
     cmd = base_cmd.split()
     print(cmd)
-    print(f"\nFinetuned model adapter path : {load_path}")
-    print(f"Compression adapter path     : {eval_path}")
-    print()
+    print(f"\nFinetuned base model adapter path : {load_path}")
+    print(f"Compression adapter path          : {eval_path}\n")
     os.execvp(cmd[0], cmd)
 
 
@@ -91,8 +73,6 @@ if __name__ == "__main__":
 
     # Shortcut commands
     if args.eval_name != '':
-        args.dataset == "all"
-
         if args.model == "llama-7b":
             if args.eval_name == "merge_recur":
                 args.eval_path = "finetune/llama-7b-no-online-merge_recur-ntok8"
@@ -100,6 +80,7 @@ if __name__ == "__main__":
                 args.eval_path = "finetune/llama-7b-no-online-concat_recur-ntok2"
 
         elif args.model == "llama-2-7b-chat":
+            args.dataset = "all"
             if args.eval_name == "merge_recur":
                 args.eval_path = "llama-2-7b-chat-online-merge_recur-ntok8"
             if args.eval_name == "concat_recur":

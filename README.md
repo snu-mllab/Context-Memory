@@ -26,11 +26,12 @@ We provide download codes for datasets and models (see below).
 ## Demo: Interactive inference with compressed memory
 ```
 python download.py --type model --dataset all  # Download adapters
-python interact.py -i -m llama-7b --eval_name [concat_recur/merge_recur]
+python inference.py -i -m llama-7b --eval_name [concat_recur/merge_recur]
 ```
 - This will launch an interactive chat system based on LLaMA-7B:  
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=50%>
-- [Update 24.01.12] We release a compression adapter for the general purpose which is trained on the mixture of datasets including samples from [RedPajama-v2](https://www.together.ai/blog/redpajama-data-v2) and [LMSYS-Chat-1M](https://huggingface.co/datasets/lmsys/lmsys-chat-1m) (# training samples is 500k). To test the adapter, set `--dataset pretrain` for download.py and interact.py.
+- To test with pre-defined examples, run the code without `-i` flag. (see [`./src/test.py`](https://github.com/snu-mllab/Context-Memory/blob/main/src/test.py))
+- [Update 24.01.12] We release a compression adapter for the general purpose which is trained on the mixture of datasets including samples from [RedPajama-v2](https://www.together.ai/blog/redpajama-data-v2) and [LMSYS-Chat-1M](https://huggingface.co/datasets/lmsys/lmsys-chat-1m) (# training samples is 500k). To test the adapter, set `--dataset pretrain` for download.py and inference.py.
 
 ## Dataset 
 - We provide tokenized data of [MetaICL](https://github.com/facebookresearch/MetaICL) and [SODA](https://github.com/skywalker023/sodaverse) for LLaMA. Smaller datasets, e.g., DailyDialog, will be downloaded and tokenized automatically during training. 
@@ -71,11 +72,11 @@ python run.py --dataset [all/metaicl/dialog/lamp] --model llama-7b \
     --eval_path [path for compression adapter] \ 
     --attn_type [concat_recur/merge_recur]
 ```
-- The base directory of --load_path and --eval_path is `{SAVEPATH}/{dataset}`.
-  - Set --pretrain_dataset for cross-dataset evaluation, e.g., to evaluate model trained with SODA on DailyDialog, set --pretrain_dataset SODA --dataset dialog. 
-- As an example, `--eval_path finetune/llama-7b-no-online-concat_recur-ntok2 --attn_type concat_recur` will test CCM-concat with two compression tokens.
+- The parent directory of --load_path and --eval_path is `{SAVEPATH}/{args.dataset}`.
   - The argument `--n_tok` will be automatically parsed from the path name.
+  - As an example, `--eval_path finetune/llama-7b-no-online-concat_recur-ntok2 --attn_type concat_recur` will test CCM-concat with two compression tokens trained with --dataset.
   - Be aware to set the correct `--attn_type` of the adapter. 
+- Set `--train_dataset` for cross-dataset evaluation, e.g., to evaluate a model trained with SODA on DailyDialog, set `--train_dataset soda --dataset dialog`. 
 - In the case of MetaICL/LaMP, we use --attn_type [concat/merge] (see [L218-223 in run.py](https://github.com/snu-mllab/Context-Memory/blob/05d0b542b7d6cc7339c9b13e66d4c15c600efe34/run.py#L218C3-L218C3)). To aggregate evaluation results on multiple test tasks, run `parse_results_metaicl.py --dataset [all,metaicl] --folder ['',finetune]`.
 
 ## Reference

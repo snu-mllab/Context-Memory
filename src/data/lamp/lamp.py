@@ -11,6 +11,7 @@ logger = datasets.logging.get_logger(__name__)
 
 
 class LaMPConfig(datasets.BuilderConfig):
+
     def __init__(
         self,
         max_tok_len=100,
@@ -166,7 +167,6 @@ class LaMP(datasets.GeneratorBasedBuilder):
         remains = cutoff.sum(axis=1)
         total = valid_entries.sum(axis=1)
         ratio = remains / total  # ratio[i] == profile remaining ratio of ith datapoint after cutoff
-
 
         if outputs is not None:
             for i, (question, output) in enumerate(zip(questions, outputs)):

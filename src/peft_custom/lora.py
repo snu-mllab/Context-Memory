@@ -61,8 +61,8 @@ class LoraConfig(PeftConfig):
         default=None,
         metadata={
             "help":
-            "List of module names or regex expression of the module names to replace with Lora."
-            "For example, ['q', 'v'] or '.*decoder.*(SelfAttention|EncDecAttention).*(q|v)$' "
+                "List of module names or regex expression of the module names to replace with Lora."
+                "For example, ['q', 'v'] or '.*decoder.*(SelfAttention|EncDecAttention).*(q|v)$' "
         },
     )
     lora_alpha: int = field(default=None, metadata={"help": "Lora alpha"})
@@ -79,9 +79,9 @@ class LoraConfig(PeftConfig):
         default=None,
         metadata={
             "help":
-            "List of modules apart from LoRA layers to be set as trainable and saved in the final checkpoint. "
-            "For example, in Sequence Classification or Token Classification tasks, "
-            "the final layer `classifier/score` are randomly initialized and as such need to be trainable and saved."
+                "List of modules apart from LoRA layers to be set as trainable and saved in the final checkpoint. "
+                "For example, in Sequence Classification or Token Classification tasks, "
+                "the final layer `classifier/score` are randomly initialized and as such need to be trainable and saved."
         },
     )
     init_lora_weights: bool = field(
@@ -149,6 +149,7 @@ class LoraModel(torch.nn.Module):
         - **model** ([`~transformers.PreTrainedModel`]) -- The model to be adapted.
         - **peft_config** ([`LoraConfig`]): The configuration of the Lora model.
     """
+
     def __init__(self, model, config, adapter_name):
         super().__init__()
         self.model = model
@@ -432,6 +433,7 @@ def mark_only_lora_as_trainable(model: nn.Module, bias: str = "none") -> None:
 
 
 class LoraLayer:
+
     def __init__(
         self,
         in_features: int,
@@ -563,6 +565,9 @@ class Linear(nn.Linear, LoraLayer):
     def forward(self, x: torch.Tensor, comp_mask=None):
         previous_dtype = x.dtype
 
+        ########################################
+        # Modified part: conditional adapter
+
         if self.active_adapter not in self.lora_A.keys():
             raise AssertionError("This should not happen")
             return F.linear(x, transpose(self.weight, self.fan_in_fan_out), bias=self.bias)
@@ -587,6 +592,7 @@ class Linear(nn.Linear, LoraLayer):
         else:
             result = F.linear(x, transpose(self.weight, self.fan_in_fan_out), bias=self.bias)
             raise AssertionError("This should not happen")
+        ########################################
 
         result = result.to(previous_dtype)
 
@@ -662,7 +668,7 @@ class Embedding(nn.Embedding, LoraLayer):
                     self.sparse,
                 )
                 result += (after_A @ self.lora_embedding_B[self.active_adapter].T
-                           ) * self.scaling[self.active_adapter]
+                          ) * self.scaling[self.active_adapter]
             return result
         else:
             return nn.Embedding.forward(self, x)

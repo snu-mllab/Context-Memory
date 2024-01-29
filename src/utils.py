@@ -15,8 +15,27 @@ def first_mismatch(a: List[Any], b: List[Any], window: int = 10):
     return None
 
 
+def transpose(weight, fan_in_fan_out):
+    return weight.T if fan_in_fan_out else weight
+
+
+def check_model(model, peft=False):
+    mem = torch.cuda.memory_allocated() / 10**6
+    print(f"\nCheck model: {model.dtype}, {model.device} (current Mem {mem:.0f} MB)")
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            print(name)
+            break
+    if peft:
+        model.print_trainable_parameters()
+    else:
+        pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"Number of trainable parameters: {pytorch_total_params:,}")
+
+
 class SeparatedEmbedding(nn.Module):
     """Separate embedding for tokens."""
+
     def __init__(self, embedding, n_new_tokens):
         super().__init__()
         n_vocab, n_dim = embedding.weight.shape

@@ -34,8 +34,9 @@ from transformers.utils.versions import require_version
 from .arguments import Arguments, global_setup
 from .callbacks import CustomWandbCallback, EvaluateFirstStepCallback
 from .trainer_seq2seq import CompSeq2SeqTrainer
-from .model import load_model, check_model, get_traininable_state_dict, load_pretrained
+from .model import load_model, get_traininable_state_dict, load_pretrained
 from .data.load import load_dataset_metric_collator
+from .utils import check_model
 
 # Will error if the minimal version of Transformers is not installed.
 check_min_version("4.28.0.dev0")
@@ -168,8 +169,8 @@ def main(args: DictConfig) -> None:
                 metrics = {f"{eval_name}_{k}": v for k, v in metrics.items()}
                 all_eval_metrics.update(metrics)
 
-                # Do Rouge evaluation
-                if not args.training.do_train:
+                # Do Generation (ROUGE) evaluation
+                if not args.training.do_train and args.training.eval_rouge:
                     metrics = trainer.evaluate(eval_dataset[eval_name])
                     update_eval_metrics(metrics, all_eval_metrics, to_eval, eval_name, args)
 
@@ -183,8 +184,9 @@ def main(args: DictConfig) -> None:
                 metrics = {f"{eval_name}_{k}": v for k, v in metrics.items()}
                 all_eval_metrics.update(metrics)
 
-                # Generation evaluation
-                if not args.training.do_train:
+                print(all_eval_metrics)
+                # Do Generation (ROUGE) evaluation
+                if not args.training.do_train and args.training.eval_rouge:
                     metrics = trainer.evaluate(to_eval)
                     update_eval_metrics(metrics, all_eval_metrics, to_eval, eval_name, args)
 
@@ -207,8 +209,8 @@ def main(args: DictConfig) -> None:
                 metrics = {f"{eval_name}_{k}": v for k, v in metrics.items()}
                 all_eval_metrics.update(metrics)
 
-                # Do Rouge evaluation
-                if not args.training.do_train:
+                # Do Generation (ROUGE) evaluation
+                if not args.training.do_train and args.training.eval_rouge:
                     metrics = trainer.evaluate(eval_dataset[eval_name])
                     update_eval_metrics(metrics, all_eval_metrics, to_eval, eval_name, args)
 

@@ -6,9 +6,13 @@ import argparse
 from path_config import SAVEPATH
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-d', '--dataset', type=str, default="all")
-parser.add_argument('-f', '--folder', type=str, default='')
-parser.add_argument('-p', '--pattern', type=str)
+parser.add_argument('-d', '--dataset', type=str, default="all", help="training dataset name")
+parser.add_argument('-f',
+                    '--folder',
+                    type=str,
+                    default='',
+                    help="subfolder of dataset folder (e.g. '' or 'finetune')")
+parser.add_argument('-p', '--pattern', type=str, help="pattern to match in adapter name")
 args = parser.parse_args()
 
 base_path = os.path.join(SAVEPATH, args.dataset)
@@ -59,7 +63,7 @@ for file in files:
     results = {k: sum(v) / len(v) for k, v in res.items()}
     results_dict_state[file] = results
 
-# Parse results
+# Parse results from eval_results
 filename = 'eval_results.json'
 results_dict = {}
 for file in files:

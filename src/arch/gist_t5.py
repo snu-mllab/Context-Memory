@@ -32,12 +32,12 @@ from transformers.models.t5.modeling_t5 import (
 from transformers.utils import logging
 
 from .generation_utils import GistGenerationMixin
-from .gist_caching import CompressedKV
 
 logger = logging.get_logger(__name__)
 
 
 class GistT5Attention(T5Attention):
+
     def forward(
         self,
         hidden_states,
@@ -153,7 +153,7 @@ class GistT5Attention(T5Attention):
 
             if mask is not None:
                 position_bias = (position_bias + mask
-                                 )  # (batch_size, n_heads, seq_length, key_length)
+                                )  # (batch_size, n_heads, seq_length, key_length)
 
         if self.pruned_heads:
             mask = torch.ones(position_bias.shape[1])
@@ -188,10 +188,10 @@ class GistT5Attention(T5Attention):
                               "Make sure this only happens during benchmarking")
                 present_key_value_state = (key_states, value_states)
 
-        outputs = (attn_output, ) + (present_key_value_state, ) + (position_bias, )
+        outputs = (attn_output,) + (present_key_value_state,) + (position_bias,)
 
         if output_attentions:
-            outputs = outputs + (attn_weights, )
+            outputs = outputs + (attn_weights,)
         return outputs
 
     def compute_bias(self, query_length, key_length, device=None):
@@ -217,6 +217,7 @@ class GistT5Attention(T5Attention):
 
 
 class GistT5LayerSelfAttention(T5LayerSelfAttention):
+
     def __init__(self, config, has_relative_attention_bias=False):
         super(T5LayerSelfAttention, self).__init__()
         self.SelfAttention = GistT5Attention(
@@ -245,11 +246,12 @@ class GistT5LayerSelfAttention(T5LayerSelfAttention):
             output_attentions=output_attentions,
         )
         hidden_states = hidden_states + self.dropout(attention_output[0])
-        outputs = (hidden_states, ) + attention_output[1:]  # add attentions if we output them
+        outputs = (hidden_states,) + attention_output[1:]  # add attentions if we output them
         return outputs
 
 
 class GistT5Block(T5Block):
+
     def __init__(self, config, has_relative_attention_bias=False):
         super(T5Block, self).__init__()
         self.is_decoder = config.is_decoder
@@ -357,10 +359,10 @@ class GistT5Block(T5Block):
             clamp_value = torch.finfo(hidden_states.dtype).max - 1000
             hidden_states = torch.clamp(hidden_states, min=-clamp_value, max=clamp_value)
 
-        outputs = (hidden_states, )
+        outputs = (hidden_states,)
 
         if use_cache:
-            outputs = outputs + (present_key_value_state, ) + attention_outputs
+            outputs = outputs + (present_key_value_state,) + attention_outputs
         else:
             outputs = outputs + attention_outputs
 
@@ -371,6 +373,7 @@ class GistT5Block(T5Block):
 
 
 class GistT5Stack(T5Stack):
+
     def __init__(self, config, embed_tokens=None):
         super(T5PreTrainedModel, self).__init__(config)
 
@@ -405,7 +408,6 @@ class GistT5Stack(T5Stack):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
-        comp_results: Optional[CompressedKV] = None,
     ):
         # Model parallel
         if self.model_parallel:
@@ -439,13 +441,6 @@ class GistT5Stack(T5Stack):
 
         batch_size, seq_length = input_shape
 
-        if comp_results is not None:
-            # Gist activations should only be used when computing encoder outputs.
-            # The decoder will attend to encoder outputs, regardless of how
-            # encoder outputs was created.
-            assert (not self.is_decoder), "Gist activations should not be passed to decoder."
-            past_key_values = comp_results.past_key_values
-
         mask_seq_length = (past_key_values[0][0].shape[2] +
                            seq_length if past_key_values is not None else seq_length)
 
@@ -456,8 +451,8 @@ class GistT5Stack(T5Stack):
 
         if attention_mask is None:
             attention_mask = torch.ones(batch_size, mask_seq_length, device=inputs_embeds.device)
-        if (self.is_decoder and encoder_attention_mask is None
-                and encoder_hidden_states is not None):
+        if (self.is_decoder and encoder_attention_mask is None and
+                encoder_hidden_states is not None):
             encoder_seq_length = encoder_hidden_states.shape[1]
             encoder_attention_mask = torch.ones(
                 batch_size,
@@ -529,7 +524,7 @@ class GistT5Stack(T5Stack):
                 if cross_attn_layer_head_mask is not None:
                     cross_attn_layer_head_mask = cross_attn_layer_head_mask.to(hidden_states.device)
             if output_hidden_states:
-                all_hidden_states = all_hidden_states + (hidden_states, )
+                all_hidden_states = all_hidden_states + (hidden_states,)
 
             if self.gradient_checkpointing and self.training:
                 if past_key_values is not None:
@@ -540,6 +535,7 @@ class GistT5Stack(T5Stack):
                     use_cache = False
 
                 def create_custom_forward(module):
+
                     def custom_forward(*inputs):
                         return tuple(module(*inputs, use_cache, output_attentions))
 
@@ -586,7 +582,7 @@ class GistT5Stack(T5Stack):
             # (self-attention weights), (cross-attention position bias),
             # (cross-attention weights)
             if use_cache is False:
-                layer_outputs = layer_outputs[:1] + (None, ) + layer_outputs[1:]
+                layer_outputs = layer_outputs[:1] + (None,) + layer_outputs[1:]
 
             hidden_states, present_key_value_state = layer_outputs[:2]
 
@@ -599,12 +595,12 @@ class GistT5Stack(T5Stack):
                 encoder_decoder_position_bias = layer_outputs[4 if output_attentions else 3]
             # append next layer key value states
             if use_cache:
-                present_key_value_states = present_key_value_states + (present_key_value_state, )
+                present_key_value_states = present_key_value_states + (present_key_value_state,)
 
             if output_attentions:
-                all_attentions = all_attentions + (layer_outputs[3], )
+                all_attentions = all_attentions + (layer_outputs[3],)
                 if self.is_decoder:
-                    all_cross_attentions = all_cross_attentions + (layer_outputs[5], )
+                    all_cross_attentions = all_cross_attentions + (layer_outputs[5],)
 
             # Model Parallel: If it's the last layer for that device, put things
             # on the next device
@@ -618,17 +614,7 @@ class GistT5Stack(T5Stack):
 
         # Add last layer
         if output_hidden_states:
-            all_hidden_states = all_hidden_states + (hidden_states, )
-
-        if comp_results is not None:
-            hidden_states = torch.cat([comp_results.last_hidden_state, hidden_states], dim=1)
-            # There should be the same number of hidden states as kv states,
-            # and that number should be the seq_length plus the number of gist
-            # tokens.
-            if present_key_value_states is not None:
-                assert hidden_states.shape[1] == present_key_value_states[0][0].shape[2]
-            assert (hidden_states.shape[1] == input_ids.shape[1] +
-                    comp_results.last_hidden_state.shape[1])
+            all_hidden_states = all_hidden_states + (hidden_states,)
 
         if not return_dict:
             return tuple(v for v in [
@@ -648,6 +634,7 @@ class GistT5Stack(T5Stack):
 
 
 class GistT5ForConditionalGeneration(T5ForConditionalGeneration, GistGenerationMixin):
+
     def __init__(self, config: T5Config):
         """Same as existing init, but uses GistT5Stack"""
         super(T5PreTrainedModel, self).__init__(config)
@@ -695,7 +682,6 @@ class GistT5ForConditionalGeneration(T5ForConditionalGeneration, GistGenerationM
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-        comp_results: Optional[CompressedKV] = None,
     ) -> Union[Tuple[torch.FloatTensor], Seq2SeqLMOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -753,7 +739,6 @@ class GistT5ForConditionalGeneration(T5ForConditionalGeneration, GistGenerationM
                 output_attentions=output_attentions,
                 output_hidden_states=output_hidden_states,
                 return_dict=return_dict,
-                comp_results=comp_results,
             )
         elif return_dict and not isinstance(encoder_outputs, BaseModelOutput):
             encoder_outputs = BaseModelOutput(
@@ -835,8 +820,8 @@ class GistT5ForConditionalGeneration(T5ForConditionalGeneration, GistGenerationM
             # TODO(thom): Add z_loss https://github.com/tensorflow/mesh/blob/fa19d69eafc9a482aff0b59ddd96b025c0cb207d/mesh_tensorflow/layers.py#L666  # noqa
 
         if not return_dict:
-            output = (lm_logits, ) + decoder_outputs[1:] + encoder_outputs
-            return ((loss, ) + output) if loss is not None else output
+            output = (lm_logits,) + decoder_outputs[1:] + encoder_outputs
+            return ((loss,) + output) if loss is not None else output
 
         outputs = Seq2SeqLMOutput(
             loss=loss,

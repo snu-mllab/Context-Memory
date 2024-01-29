@@ -1,8 +1,6 @@
 """Utilities for attention mask generation."""
 
 from typing import Optional, Tuple
-from math import ceil
-
 import torch
 
 
@@ -18,47 +16,6 @@ def reverse_cumsum(x: torch.Tensor) -> torch.Tensor:
         all elements to the right of it.
     """
     return x + torch.sum(x, dim=-1, keepdims=True) - torch.cumsum(x, dim=-1)
-
-
-def get_gist_index(input_ids: torch.Tensor,
-                   comp_token: int,
-                   raise_if_no_tokens: bool = False) -> Tuple[Optional[int], Optional[int]]:
-    """Finds the start and end of the gist span in input_ids.
-
-    Args:
-        input_ids: tensor of input ids.
-        comp_token: value of COMP token.
-        raise_if_no_tokens: raise an error if there are no COMP tokens.
-
-    Returns:
-        (start, end) of COMP token(s), with exclusive end, if they exist,
-        otherwise (None, None) if raise_if_no_tokens is False (raises
-        error if True).
-
-    Raises:
-        RuntimeError: If the COMP tokens in the input are not a contiguous span.
-        ValueError: If no COMP tokens are found and raise_if_no_tokens is True.
-    """
-    comp_indices = (input_ids == comp_token).nonzero().squeeze(-1)
-    if len(comp_indices) == 0:
-        if raise_if_no_tokens:
-            raise ValueError(f"Could not find COMP token {comp_token} in {input_ids}")
-        return (None, None)
-    # Assert that the gist indices are a single continuous sequence.
-    _assert_continguous_span(comp_indices)
-    return (comp_indices[0].item(), comp_indices[-1].item() + 1)
-
-
-def _assert_continguous_span(comp_indices: torch.Tensor):
-    """Assert that the gist indices form a contiguous span."""
-    gist_start = comp_indices[0]
-    comp_indices_arange = torch.arange(
-        start=gist_start,
-        end=gist_start + len(comp_indices),
-        device=comp_indices.device,
-    )
-    if not (comp_indices == comp_indices_arange).all():
-        raise RuntimeError(f"COMP tokens do not form a contiguous span: {comp_indices}")
 
 
 def get_comp_mask(

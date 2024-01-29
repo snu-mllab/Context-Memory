@@ -3,9 +3,6 @@
 defaults:
   - data
 
-model:
-  model_name_or_path: /storage/shared/janghyun/llama-7b-hf
-
 training:
   fp16: true
   fp16_full_eval: true

@@ -4,17 +4,14 @@ from datasets import DatasetDict
 
 
 def strip_special_tokens(s):
-    """A way of getting rid of special tokens WITHOUT getting rid of the gist token."""
-    return (s.replace("<pad> ", "").replace("</s>", "").replace("<pad>",
-                                                                "").replace("<unk>",
-                                                                            "").replace("⁇",
-                                                                                        "").strip())
+    s = s.replace("<pad> ", "").replace("</s>", "").replace("<pad>", "")
+    s = s.replace("<unk>", "").replace("⁇", "").strip()
+    return s
 
 
 def nested_select(datasets: DatasetDict, max_len: int, **kwargs):
     return DatasetDict(
-        {k: v.select(range(min(max_len, len(v))), **kwargs)
-         for k, v in datasets.items()})
+        {k: v.select(range(min(max_len, len(v))), **kwargs) for k, v in datasets.items()})
 
 
 def test_collator(collator, batch, tokenizer, is_llama):
@@ -36,10 +33,6 @@ def test_collator(collator, batch, tokenizer, is_llama):
             print(tokenizer.decode([t for k, t in enumerate(instance) if mask[k]]))
 
             print("\n* Compressed sample: ")
-            # for j in range(1, model_inputs["attention_mask_comp"].shape[-1], 5):
-            #     mask = model_inputs["attention_mask_comp"][i, 0][j]
-            #     if mask.sum() > 0:
-            #         print(tokenizer.decode([t for k, t in enumerate(instance) if mask[k]]))
             mask = model_inputs["attention_mask_comp"][i, 0][-1]
             print(tokenizer.decode([t for i, t in enumerate(instance) if mask[i]]))
 

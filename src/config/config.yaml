@@ -25,7 +25,6 @@ wandb:
   name: ${basename:${model.model_name_or_path}}-${wandb.tag}
 
 model:
-  model_name_or_path: /storage/shared/janghyun/llama-7b-hf
   pretrained: true
 
 training:
@@ -61,9 +60,3 @@ training:
   greater_is_better: true
   max_source_length: 256
   max_target_length: 256
-
-  lamp:
-    num_shot: 1
-    cutoff_ratio: 0.1
-    gist: "gist"
-    recur_cross_attn: false
