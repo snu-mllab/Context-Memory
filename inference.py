@@ -52,8 +52,8 @@ if __name__ == "__main__":
     parser.add_argument("--dataset",
                         "-d",
                         type=str,
-                        default='all',
-                        choices=['all', 'pretrain', 'metaicl', 'dialog'])
+                        default="unified",
+                        choices=["unified", "pretrain", "metaicl", "dialog"])
     parser.add_argument("--eval_path", "-e", type=str, help="Compression adapter path")
     parser.add_argument(
         "--eval_name",
@@ -80,7 +80,7 @@ if __name__ == "__main__":
                 args.eval_path = "finetune/llama-7b-no-online-concat_recur-ntok2"
 
         elif args.model == "llama-2-7b-chat":
-            args.dataset = "all"
+            args.dataset = "unified"
             if args.eval_name == "merge_recur":
                 args.eval_path = "llama-2-7b-chat-online-merge_recur-ntok8"
             if args.eval_name == "concat_recur":

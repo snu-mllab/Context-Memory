@@ -8,7 +8,7 @@ from path_config import SAVEPATH, DATAPATH
 # Google Drive Links
 DriveLinks = {}
 DriveLinks[
-    "model_all"] = "https://drive.google.com/drive/folders/1L1KZzpBt5jN7Fb1CB24EzzFwpCpUZWbf?usp=sharing"
+    "model_unified"] = "https://drive.google.com/drive/folders/1L1KZzpBt5jN7Fb1CB24EzzFwpCpUZWbf?usp=sharing"
 DriveLinks[
     "model_dialog"] = "https://drive.google.com/drive/folders/1YkQDYjvWhOpQFBGF2-jKnrzUsRxpumT_?usp=sharing"
 DriveLinks[
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     parser.add_argument("--type", type=str, choices=["data", "model"])
     parser.add_argument("--dataset",
                         type=str,
-                        choices=["all", "metaicl", "dialog", "soda", "lamp", "pretrain"])
+                        choices=["unified", "metaicl", "dialog", "soda", "lamp", "pretrain"])
     args = parser.parse_args()
 
     if args.type == "data":

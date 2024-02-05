@@ -19,7 +19,7 @@ def load_dataset_metric_collator(args, model, tokenizer):
                                                              tokenizer=tokenizer,
                                                              args=args)
 
-    if args.data.dataset_name == "all":
+    if args.data.dataset_name == "unified":
         # Load datasets, MetaICL and dialogue datasets
         meta = metaicl.data.MetaICLData(
             tokenizer,

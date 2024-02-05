@@ -71,7 +71,7 @@ def detect_last_checkpoint(args):
     return last_checkpoint
 
 
-@hydra.main(config_path="config", config_name="config", version_base='1.1')
+@hydra.main(config_path="config", config_name="config", version_base="1.1")
 def main(args: DictConfig) -> None:
     args: Arguments = global_setup(args)
     last_checkpoint = None
@@ -97,12 +97,12 @@ def main(args: DictConfig) -> None:
     # ==== LOAD DATASET and COLLATOR ====
     train_dataset, eval_dataset, compute_metrics, data_collator = load_dataset_metric_collator(
         args, model, tokenizer)
-    if args.data.dataset_name in ['metaicl', 'all']:
+    if args.data.dataset_name in ["metaicl", "unified"]:
         eval_dataset_total = eval_dataset
-        eval_dataset = eval_dataset_total['rouge']
-        eval_dataset_cls = eval_dataset_total['cls']
-        if args.data.dataset_name == 'all':
-            eval_dataset_dialog = eval_dataset_total['dialog']
+        eval_dataset = eval_dataset_total["rouge"]
+        eval_dataset_cls = eval_dataset_total["cls"]
+        if args.data.dataset_name == "unified":
+            eval_dataset_dialog = eval_dataset_total["dialog"]
 
     # ==== INITIALIZE TRAINER ====
     custom_callbacks = []
@@ -190,7 +190,7 @@ def main(args: DictConfig) -> None:
                     metrics = trainer.evaluate(to_eval)
                     update_eval_metrics(metrics, all_eval_metrics, to_eval, eval_name, args)
 
-        elif args.data.dataset_name == "all":
+        elif args.data.dataset_name == "unified":
             # Eval dialog
             for eval_name, to_eval in eval_dataset_dialog.items():
                 logger.info(f"*** Evaluate {eval_name} ***")

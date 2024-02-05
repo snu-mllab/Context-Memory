@@ -240,12 +240,12 @@ if __name__ == "__main__":
                         default=1,
                         help="Number of COMP tokens for each time step")
     ## Notes on datasets ##
-    ## 'all' refers to the mixture of MetaICL and SODA (Table 15 of our arXiv paper).
+    ## 'unified' refers to the mixture of MetaICL and SODA (Table 15 of our arXiv paper).
     ## 'pretrain' refers to the mixture of RedPajama-V2, LmSys-Chat, MetaICL, SODA (Table 4 of our arXiv paper).
     parser.add_argument("--dataset",
                         "-d",
                         default='metaicl',
-                        choices=['all', 'metaicl', 'dialog', 'soda', 'lamp', 'pretrain'],
+                        choices=['unified', 'metaicl', 'dialog', 'soda', 'lamp', 'pretrain'],
                         help="Training/evaluation dataset.")
     parser.add_argument(
         "--train_dataset",
