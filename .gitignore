@@ -153,6 +153,7 @@ data/results
 data/benchmarking
 dataset
 result
+dummy
 
 # Misc
 clean.sh

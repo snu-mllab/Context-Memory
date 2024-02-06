@@ -31,7 +31,7 @@ def pad_inputs(loc, model_inputs, label_pad_token_id, pad_token):
             # To left-pad inputs, reverse, then right-pad, then reverse.
             # Pad attention too (with pad_token_id)
             if type(value[0]) == torch.Tensor:
-                value_tensors = [torch.flip(v, dims=(0, )) for v in value]
+                value_tensors = [torch.flip(v, dims=(0,)) for v in value]
             else:
                 value_tensors = [torch.tensor(v[::-1]) for v in value]
             model_inputs[key] = torch.fliplr(
@@ -54,7 +54,12 @@ def pad_inputs(loc, model_inputs, label_pad_token_id, pad_token):
     return model_inputs
 
 
-def prepare_comp_attn_mask_llama(model_inputs, comp_args, comp_token, sum_token, pad_token):
+def prepare_comp_attn_mask_llama(model_inputs,
+                                 comp_args,
+                                 comp_token,
+                                 sum_token,
+                                 pad_token,
+                                 sink_token=None):
     # Construct compression attention mask
     attn_type = comp_args.attn_type
     if comp_args.comp_type in ["pos_control", "neg_control"] or not comp_args.add_comp_token:
@@ -87,34 +92,40 @@ def prepare_comp_attn_mask_llama(model_inputs, comp_args, comp_token, sum_token,
             comp_token,
             sum_token=sum_token,
             pad_token=pad_token,
+            sink_token=sink_token,
         )
         model_inputs["prompt_attention_mask_comp"] = comp_attn_fn(
             model_inputs["prompt_input_ids"],
             comp_token,
             sum_token=sum_token,
             pad_token=pad_token,
+            sink_token=sink_token,
         )
     elif attn_type == "merge_recur":
         model_inputs["attention_mask_comp"] = comp_attn_fn(
             model_inputs["input_ids"],
             sum_token,
             pad_token=pad_token,
+            sink_token=sink_token,
         )
         model_inputs["prompt_attention_mask_comp"] = comp_attn_fn(
             model_inputs["prompt_input_ids"],
             sum_token,
             pad_token=pad_token,
+            sink_token=sink_token,
         )
     else:
         model_inputs["attention_mask_comp"] = comp_attn_fn(
             model_inputs["input_ids"],
             comp_token,
             pad_token=pad_token,
+            sink_token=sink_token,
         )
         model_inputs["prompt_attention_mask_comp"] = comp_attn_fn(
             model_inputs["prompt_input_ids"],
             comp_token,
             pad_token=pad_token,
+            sink_token=sink_token,
         )
 
     return model_inputs
@@ -203,8 +214,16 @@ class DataCollator_LLAMA:
             model_inputs["completion_attention_mask"].append([1 for _ in output_token])
 
         # Left padding
+        sink_token = None
+        if self.comp_args.sink:
+            sink_token = self.tokenizer.bos_token_id
+
         model_inputs = pad_inputs("left", model_inputs, self.label_pad_token_id, self.pad_token)
-        model_inputs = prepare_comp_attn_mask_llama(model_inputs, self.comp_args, self.comp_token,
-                                                    self.sum_token, self.pad_token)
+        model_inputs = prepare_comp_attn_mask_llama(model_inputs,
+                                                    self.comp_args,
+                                                    self.comp_token,
+                                                    self.sum_token,
+                                                    self.pad_token,
+                                                    sink_token=sink_token)
 
         return model_inputs

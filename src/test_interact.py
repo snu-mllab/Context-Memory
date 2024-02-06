@@ -8,7 +8,7 @@ from omegaconf.dictconfig import DictConfig
 from transformers import GenerationConfig
 from .arguments import Arguments, global_setup
 from .model import load_model, load_pretrained
-from .test import extract_comp_results, merge_comp_results, get_response, set_seperation_token
+from .test_case import extract_comp_results, merge_comp_results, get_response, set_seperation_token
 
 
 @torch.inference_mode()

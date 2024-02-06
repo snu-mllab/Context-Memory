@@ -50,6 +50,7 @@ class CompressionArguments:
     separate_embed: bool = True  # Separate embedding for COMP tokens
     cond_lora: bool = True  # conditional LoRA
     relative_embedding: str = "skip"  # skip positional embedding id counts for COMP tokens
+    sink: bool = False
 
 
 @dataclass
@@ -173,6 +174,7 @@ class ModelArguments:
     fine-tune, or train from scratch.
     """
 
+    stream: bool = False
     model_name_or_path: str = field(
         default="google/flan-t5-base",
         metadata={
@@ -301,7 +303,7 @@ class Arguments:
     model: ModelArguments = ModelArguments()
     data: DataTrainingArguments = DataTrainingArguments()
     wandb: WandBArguments = WandBArguments()
-    training: CompSeq2SeqTrainingArguments = CompSeq2SeqTrainingArguments("dummy")
+    training: CompSeq2SeqTrainingArguments = CompSeq2SeqTrainingArguments("result/dummy")
     user: Optional[str] = os.environ.get("USER", None)
 
 

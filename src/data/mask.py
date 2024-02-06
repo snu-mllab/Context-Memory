@@ -86,6 +86,7 @@ def get_pos_attn_mask(
     inputs: torch.Tensor,
     comp_token: Optional[int] = None,
     pad_token: Optional[int] = None,
+    sink_token: Optional[int] = None,
     dtype=torch.int64,
 ):
     """Creates a 4D pos control mask.
@@ -112,6 +113,7 @@ def get_comp_attn_mask_recur(
     inputs: torch.Tensor,
     comp_token: Optional[int],
     pad_token: Optional[int] = None,
+    sink_token: Optional[int] = None,
     dtype=torch.int64,
 ) -> torch.Tensor:
     """Creates a 4D recurrent comp mask (last).
@@ -152,6 +154,8 @@ def get_comp_attn_mask_recur(
 
     if pad_token is not None:
         mask = mask & (inputs != pad_token)[:, None, None]
+    if sink_token is not None:
+        mask = mask | (inputs == sink_token)[:, None, None]
 
     return mask.type(dtype)
 
@@ -160,6 +164,7 @@ def get_comp_attn_mask_concat_recur(
     inputs: torch.Tensor,
     comp_token: Optional[int],
     pad_token: Optional[int] = None,
+    sink_token: Optional[int] = None,
     dtype=torch.int64,
 ) -> torch.Tensor:
     """Creates a 4D concat recurrent comp mask. (block-wise attention + <COMP> token attention)
@@ -195,8 +200,9 @@ def get_comp_attn_mask_concat_recur(
     assert mask.dtype == torch.bool
 
     if pad_token is not None:
-        padding_mask = (inputs != pad_token)[:, None, None]
-        mask = mask & padding_mask
+        mask = mask & (inputs != pad_token)[:, None, None]
+    if sink_token is not None:
+        mask = mask | (inputs == sink_token)[:, None, None]
 
     return mask.type(dtype)
 
@@ -205,6 +211,7 @@ def get_comp_attn_mask_concat(
     inputs: torch.Tensor,
     comp_token: Optional[int],
     pad_token: Optional[int] = None,
+    sink_token: Optional[int] = None,
     dtype=torch.int64,
 ) -> torch.Tensor:
     """Creates a 4D concat comp mask. (only input attend the <COMP> token)
@@ -242,8 +249,9 @@ def get_comp_attn_mask_concat(
     assert mask.dtype == torch.bool
 
     if pad_token is not None:
-        padding_mask = (inputs != pad_token)[:, None, None]
-        mask = mask & padding_mask
+        mask = mask & (inputs != pad_token)[:, None, None]
+    if sink_token is not None:
+        mask = mask | (inputs == sink_token)[:, None, None]
 
     return mask.type(dtype)
 
@@ -253,6 +261,7 @@ def get_comp_attn_mask_merge(
     comp_token: Optional[int],
     pad_token: Optional[int] = None,
     sum_token: Optional[int] = None,
+    sink_token: Optional[int] = None,
     dtype=torch.int64,
 ) -> torch.Tensor:
     """Creates a 4D merge comp mask. (only input attend the merged <COMP> token)
@@ -298,8 +307,9 @@ def get_comp_attn_mask_merge(
     assert mask.dtype == torch.bool
 
     if pad_token is not None:
-        padding_mask = (inputs != pad_token)[:, None, None]
-        mask = mask & padding_mask
+        mask = mask & (inputs != pad_token)[:, None, None]
+    if sink_token is not None:
+        mask = mask | (inputs == sink_token)[:, None, None]
 
     return mask.type(dtype)
 
@@ -308,6 +318,7 @@ def cross_attention_comp_last(
     inputs: torch.Tensor,
     comp_token: int,
     pad_token: Optional[int] = None,
+    sink_token: Optional[int] = None,
     dtype=torch.int64,
 ) -> torch.Tensor:
     """Returns a mask where all tokens prior to the last COMP token are masked out.
@@ -327,7 +338,9 @@ def cross_attention_comp_last(
     mask = (mask == mask[:, -1:])
 
     if pad_token is not None:
-        mask = mask & (inputs != pad_token)
+        mask = mask & (inputs != pad_token)[:, None, None]
+    if sink_token is not None:
+        mask = mask | (inputs == sink_token)[:, None, None]
     return mask.type(dtype)
 
 
@@ -335,6 +348,7 @@ def cross_attention_comp_concat(
     inputs: torch.Tensor,
     comp_token: int,
     pad_token: Optional[int] = None,
+    sink_token: Optional[int] = None,
     dtype=torch.int64,
 ) -> torch.Tensor:
     """Returns a mask where text tokens prior to the last COMP token are masked out.
@@ -353,7 +367,9 @@ def cross_attention_comp_concat(
     mask = mask | comp_mask
 
     if pad_token is not None:
-        mask = mask & (inputs != pad_token)
+        mask = mask & (inputs != pad_token)[:, None, None]
+    if sink_token is not None:
+        mask = mask | (inputs == sink_token)[:, None, None]
     return mask.type(dtype)
 
 

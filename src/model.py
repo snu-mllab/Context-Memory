@@ -16,6 +16,7 @@ from .arch.gist_t5 import GistT5ForConditionalGeneration
 from .arch.ccm_t5 import T5ForConditionalGeneration_CCM
 from .arch.gist_llama import GistLlamaForCausalLM
 from .arch.ccm_llama import LlamaForCausalLM_CCM
+from .arch.ccm_llama_stream import LlamaForCausalLM_CCM_Stream
 
 from .utils import SeparatedEmbedding, transpose
 from . import peft_custom
@@ -245,6 +246,9 @@ def load_model(args):
         if args.training.comp.cond_lora:
             model_cls = LlamaForCausalLM_CCM
             print("Use conditional LoRA!")
+            if args.model.stream:
+                model_cls = LlamaForCausalLM_CCM_Stream  # key position ids reset
+                print("Use streaming model!")
     else:
         raise ValueError(f"Model type {model_path} not supported")
 
@@ -366,4 +370,5 @@ def update_compression_token(args, model, tokenizer):
     else:
         model.update_comp_token(tokenizer.comp_token_id, tokenizer.sum_token_id)
 
-    print("comp tokens (w/ sum tokens): ", ''.join(tokenizer.additional_special_tokens))
+    print("comp tokens (including sum tokens if exist): ",
+          ''.join(tokenizer.additional_special_tokens))

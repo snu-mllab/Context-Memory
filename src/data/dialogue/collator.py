@@ -34,7 +34,7 @@ class DataCollatorForDialogue_LLAMA:
         for instance in batch:
             instance = self.dialog.sample_dialog(
                 instance,
-                random_k=True, 
+                random_k=True,
                 sum_token=self.sum_token,
                 sum_recur=self.comp_args.attn_type == "merge_recur",
                 neg_control=self.comp_args.comp_type == "neg_control",
@@ -57,8 +57,16 @@ class DataCollatorForDialogue_LLAMA:
             model_inputs["completion_attention_mask"].append([1 for _ in output_token])
 
         # Left padding
+        sink_token = None
+        if self.comp_args.sink:
+            sink_token = self.tokenizer.bos_token_id
+
         model_inputs = pad_inputs("left", model_inputs, self.label_pad_token_id, self.pad_token)
-        model_inputs = prepare_comp_attn_mask_llama(model_inputs, self.comp_args, self.comp_token,
-                                                    self.sum_token, self.pad_token)
+        model_inputs = prepare_comp_attn_mask_llama(model_inputs,
+                                                    self.comp_args,
+                                                    self.comp_token,
+                                                    self.sum_token,
+                                                    self.pad_token,
+                                                    sink_token=sink_token)
 
         return model_inputs

@@ -1,4 +1,5 @@
 hydra:
+  output_subdir: null  
   run:
     dir: .
   sweep:
@@ -15,6 +16,8 @@ hydra:
 defaults:
   - base_config  # see src/arguments.py
   - _self_
+  - override hydra/hydra_logging: disabled  
+  - override hydra/job_logging: disabled  
 
 
 wandb:

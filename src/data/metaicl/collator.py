@@ -17,6 +17,85 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
+class DataCollatorForMetaICL_LLAMA:
+    """Data collator for decoder-only models. Does left padding."""
+
+    meta: MetaICLData
+    tokenizer: PreTrainedTokenizerBase
+    comp_args: CompressionArguments
+    model: Optional[Any] = None
+    max_length: Optional[int] = 1024
+    comp_token: int = 32000
+    sum_token: int = 32000
+    return_tensors: str = "pt"
+    k: int = 16
+    padding: Union[bool, str, PaddingStrategy] = 'left'
+    pad_token: int = 0
+    label_pad_token_id: int = -100
+    seed_eval: int = 100
+
+    def __call__(self, batch, return_tensors=None):
+        if type(self.comp_token) == int:
+            self.comp_token = [self.comp_token]
+
+        model_inputs = defaultdict(list)
+        for instance in batch:
+            # For evaluation
+            if "is_answer" in instance:
+                model_inputs["is_answer"].append(instance["is_answer"])
+                model_inputs["idx"].append(instance["idx"])
+
+            instance = self.meta.add_demonstration(
+                instance,
+                max_length=self.max_length,
+                k=self.k,
+                seed_eval=self.seed_eval,
+                sum_token=self.sum_token,
+                sum_recur=self.comp_args.attn_type == "merge_recur",
+            )
+
+            input_token = instance['input_ids']
+            output_token = instance['output_ids']
+
+            if "is_answer" in model_inputs:
+                baseline = self.meta.output_prefix + output_token
+                baseline_labels = [self.label_pad_token_id] * len(
+                    self.meta.output_prefix) + output_token
+
+                model_inputs["baseline"].append(baseline)
+                model_inputs["baseline_labels"].append(baseline_labels)
+                model_inputs["baseline_attention_mask"].append([1 for _ in baseline])
+
+            full_token = input_token + output_token
+            labels = [self.label_pad_token_id] * len(input_token) + output_token
+
+            model_inputs["input_ids"].append(full_token)
+            model_inputs["labels"].append(labels)
+            model_inputs["attention_mask"].append([1 for _ in full_token])
+
+            model_inputs["prompt_input_ids"].append(input_token)
+            model_inputs["prompt_attention_mask"].append([1 for _ in input_token])
+
+            model_inputs["completion_input_ids"].append(output_token)
+            model_inputs["completion_attention_mask"].append([1 for _ in output_token])
+
+        # Left padding
+        sink_token = None
+        if self.comp_args.sink:
+            sink_token = self.tokenizer.bos_token_id
+
+        model_inputs = pad_inputs("left", model_inputs, self.label_pad_token_id, self.pad_token)
+        model_inputs = prepare_comp_attn_mask_llama(model_inputs,
+                                                    self.comp_args,
+                                                    self.comp_token,
+                                                    self.sum_token,
+                                                    self.pad_token,
+                                                    sink_token=sink_token)
+
+        return model_inputs
+
+
+@dataclass
 class DataCollatorForMetaICL_T5:
     meta: MetaICLData
     tokenizer: PreTrainedTokenizerBase
@@ -115,76 +194,5 @@ class DataCollatorForMetaICL_T5:
         else:
             raise ValueError(
                 f"Invalid comp_type: {self.comp_args.comp_type}, {self.comp_args.attn_type}")
-
-        return model_inputs
-
-
-@dataclass
-class DataCollatorForMetaICL_LLAMA:
-    """Data collator for decoder-only models. Does left padding."""
-
-    meta: MetaICLData
-    tokenizer: PreTrainedTokenizerBase
-    comp_args: CompressionArguments
-    model: Optional[Any] = None
-    max_length: Optional[int] = 1024
-    comp_token: int = 32000
-    sum_token: int = 32000
-    return_tensors: str = "pt"
-    k: int = 16
-    padding: Union[bool, str, PaddingStrategy] = 'left'
-    pad_token: int = 0
-    label_pad_token_id: int = -100
-    seed_eval: int = 100
-
-    def __call__(self, batch, return_tensors=None):
-        if type(self.comp_token) == int:
-            self.comp_token = [self.comp_token]
-
-        model_inputs = defaultdict(list)
-        for instance in batch:
-            # For evaluation
-            if "is_answer" in instance:
-                model_inputs["is_answer"].append(instance["is_answer"])
-                model_inputs["idx"].append(instance["idx"])
-
-            instance = self.meta.add_demonstration(
-                instance,
-                max_length=self.max_length,
-                k=self.k,
-                seed_eval=self.seed_eval,
-                sum_token=self.sum_token,
-                sum_recur=self.comp_args.attn_type == "merge_recur",
-            )
-
-            input_token = instance['input_ids']
-            output_token = instance['output_ids']
-
-            if "is_answer" in model_inputs:
-                baseline = self.meta.output_prefix + output_token
-                baseline_labels = [self.label_pad_token_id] * len(
-                    self.meta.output_prefix) + output_token
-
-                model_inputs["baseline"].append(baseline)
-                model_inputs["baseline_labels"].append(baseline_labels)
-                model_inputs["baseline_attention_mask"].append([1 for _ in baseline])
-
-            full_token = input_token + output_token
-            labels = [self.label_pad_token_id] * len(input_token) + output_token
-
-            model_inputs["input_ids"].append(full_token)
-            model_inputs["labels"].append(labels)
-            model_inputs["attention_mask"].append([1 for _ in full_token])
-
-            model_inputs["prompt_input_ids"].append(input_token)
-            model_inputs["prompt_attention_mask"].append([1 for _ in input_token])
-
-            model_inputs["completion_input_ids"].append(output_token)
-            model_inputs["completion_attention_mask"].append([1 for _ in output_token])
-
-        # Left padding
-        model_inputs = pad_inputs("left", model_inputs, self.label_pad_token_id, self.pad_token)
-        model_inputs = prepare_comp_attn_mask_llama(model_inputs, self.comp_args, self.comp_token,
-                                                    self.sum_token, self.pad_token)
 
         return model_inputs

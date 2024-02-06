@@ -25,29 +25,32 @@ DriveLinks[
     "data_soda"] = "https://drive.google.com/drive/folders/1YSHJlkcyt7WYUyKmW6yiLScrqjNcg6iu?usp=sharing"
 DriveLinks[
     "data_lamp"] = "https://drive.google.com/drive/folders/1me8GcIwzO0m5r942oJFNSck2O7271Fkf?usp=drive_link"
+DriveLinks[
+    "data_pg19"] = "https://drive.google.com/drive/folders/1rjHHHOp-NO5XwtFVUNKSrjm4cPpBVJ7X?usp=sharing"
 ####################
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--type", type=str, choices=["data", "model"])
-    parser.add_argument("--dataset",
-                        type=str,
-                        choices=["unified", "metaicl", "dialog", "soda", "lamp", "pretrain"])
+    parser.add_argument(
+        "--name",
+        type=str,
+        choices=["unified", "pretrain", "metaicl", "dialog", "soda", "lamp", "pg19"])
     args = parser.parse_args()
 
     if args.type == "data":
-        path = os.path.join(DATAPATH, args.dataset)
+        path = os.path.join(DATAPATH, args.name)
     elif args.type == "model":
-        path = os.path.join(SAVEPATH, args.dataset)
+        path = os.path.join(SAVEPATH, args.name)
 
-    print(f"Download {args.dataset} {args.type} from Google Drive at {path}")
+    print(f"Download {args.name} {args.type} from Google Drive at {path}")
 
-    key = f"{args.type}_{args.dataset}"
+    key = f"{args.type}_{args.name}"
     gdown.download_folder(DriveLinks[key], output=path)
 
     if args.type == "data":
         for name in ["llama", "llama2-chat"]:
-            f_name = os.path.join(path, f"{args.dataset}_{name}.zip")
+            f_name = os.path.join(path, f"{args.name}_{name}.zip")
             if not os.path.exists(f_name):
                 continue
             with zipfile.ZipFile(f_name, 'r') as zip_ref:

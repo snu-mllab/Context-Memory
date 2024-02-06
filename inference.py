@@ -6,9 +6,11 @@ from run import parse_path
 
 def run(args):
     if args.interactive:
-        base_cmd = f"python -B -m src.interact"
+        base_cmd = f"python -B -m src.test_interact"
+    elif args.stream:
+        base_cmd = f"python -B -m src.test_stream"
     else:
-        base_cmd = f"python -B -m src.test"
+        base_cmd = f"python -B -m src.test_case"
 
     # Config file
     model = args.model
@@ -32,6 +34,8 @@ def run(args):
 
     if args.interactive:
         base_cmd = f"{base_cmd} training.interactive=true"
+    if args.stream:
+        base_cmd = f"{base_cmd} model.stream=true"
 
     base_cmd = f"{base_cmd} model.cache_dir={CACHEDIR}"
 
@@ -64,6 +68,7 @@ if __name__ == "__main__":
                         "-i",
                         action="store_true",
                         help="Interactive mode. Turning off will run some sanity check test codes.")
+    parser.add_argument("--stream", "-s", action="store_true", help="Evaluate streaming setting.")
 
     args = parser.parse_args()
 
@@ -85,5 +90,11 @@ if __name__ == "__main__":
                 args.eval_path = "llama-2-7b-chat-online-merge_recur-ntok8"
             if args.eval_name == "concat_recur":
                 args.eval_path = "llama-2-7b-chat-online-concat_recur-ntok2"
+
+    # Streaming model
+    if args.stream:
+        args.model = "llama-7b"
+        args.dataset = "pretrain"
+        args.eval_path = "finetune/llama-7b-no-online-concat_recur-ntok2-sink"
 
     run(args)

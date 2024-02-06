@@ -89,6 +89,10 @@ def run(args):
         base_cmd = f"{base_cmd} training.comp.num_comp_tokens={args.n_tok}"
         method_tag += f"-ntok{args.n_tok}"
 
+    if args.sink:
+        base_cmd = f"{base_cmd} training.comp.sink=true"
+        method_tag += f"-sink"
+
     ## Model config
     model_tag = ''
     if model.startswith("llama"):
@@ -141,7 +145,7 @@ def run(args):
     if args.tag != '':
         method_tag += f"{args.tag}"
 
-    # Load evaluation model
+    # Load a compression adapter/model for evaluation
     if args.eval_path != '':
         subfolder = 'test'
 
@@ -150,7 +154,7 @@ def run(args):
 
         wandb_name = f"{subfolder}-{os.path.basename(training_output_dir)}"
 
-        # Load pretrained model for evaluation
+        # Load finetuned adapter/model
         if args.eval_path.startswith("finetune"):
             assert args.load_path != '', "Check args.load_path! (e.g., llama-7b-no)"
         if args.load_path != '':
@@ -160,7 +164,7 @@ def run(args):
         eval_path = f"{SAVEPATH}/{wandb_group}/{args.eval_path}"
         base_cmd = f"{base_cmd} training.eval_path={eval_path}"
 
-    # Load pretrained model for finetuning
+    # Load finetuned adapter/model before training a compression adapter/model
     elif args.load_path != '':
         subfolder = 'finetune'
 
@@ -263,7 +267,10 @@ if __name__ == "__main__":
                         default=1024,
                         help="Max token length for each data sample")
     # Training
-    parser.add_argument("--train", action="store_true", help="Conduct finetuning")
+    parser.add_argument("--train", action="store_true", help="Do finetuning")
+    parser.add_argument("--sink",
+                        action="store_true",
+                        help="Keep attention sink (BOS token) during compression training")
     parser.add_argument("--max_steps", type=int, default=-1, help="Max finetuning steps")
     parser.add_argument("--lr", type=float, default=-1, help="Learning rate")
     parser.add_argument("--per_device_train_batch_size", '-b', type=int, default=-1)

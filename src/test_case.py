@@ -12,6 +12,21 @@ from .model import load_model, load_pretrained
 from .data import mask
 
 
+def make_example():
+    """ Define example case for testing compression model!
+        The last sentence is the target output.
+    """
+    example = []
+    example.append("Hi, I'm Janghyun. How are you?")
+    example.append("I'm fine. It's great.")
+    example.append("I'm fine, too. Where are you from?")
+    example.append("I'm from Korea.")
+    example.append("Oh, really? I'm from Korea, too. Do you remember my name? Please tell me.")
+    example.append("Yes, I remember. Your name is Janghyun.")  # target output
+
+    return example
+
+
 def extract_comp_results(past_key_values, loc):
     """Extract compressed memory keys/values from past_key_values
     KV shape: [n_layer, 2 (key/value)] x [bsz, n_head, seq_len, dim_per_head]
@@ -254,18 +269,6 @@ def main(args: DictConfig) -> None:
     inputs["query"] = torch.tensor(query, device='cuda').unsqueeze(0)
 
     test(model, tokenizer, inputs, args)
-
-
-def make_example():
-    example = []
-    example.append("Hi, I'm Janghyun. How are you?")
-    example.append("I'm fine. It's great.")
-    example.append("I'm fine, too. Where are you from?")
-    example.append("I'm from Korea.")
-    example.append("Oh, really? I'm from Korea, too. Do you remember my name? Please tell me.")
-    example.append("Yes, I remember. Your name is Janghyun.")  # target output
-
-    return example
 
 
 if __name__ == "__main__":

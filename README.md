@@ -3,10 +3,11 @@
 
 [**Paper**](https://janghyun1230.github.io/memory/static/ccm23.pdf) | [**arXiv**](https://arxiv.org/abs/2312.03414) | [**Project Page**](https://janghyun1230.github.io/memory/)
 
-- Our approach dynamically creates **compressed memory of attention keys/values** during LLM interactions. 
-- Our approach only requires training a **conditional LoRA for compression**.
+- Our approach dynamically creates **compressed key/value memory** during LLM interactions. 
+- Our approach only requires a **conditional LoRA for compression**.
 - We propose a **fully parallelized training** strategy for recurrent compression procedures. 
 - We support evaluations on diverse applications: conversation, multi-task ICL, and personalization. 
+- [Update 24.02.06] Streaming setting codes updated.  
 
 ## Setup
 ```
@@ -25,19 +26,29 @@ We provide download codes for datasets and models (see below).
 
 ## Demo: Interactive inference with compressed memory
 ```
-python download.py --type model --dataset unified  # Download adapters
+python download.py --type model --name unified  # Download adapters
 python inference.py -i -m llama-7b --eval_name [concat_recur/merge_recur]
 ```
 - This will launch an interactive chat system based on LLaMA-7B:  
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=50%>
-- To test with pre-defined examples, run the code without `-i` flag. (see [`./src/test.py`](https://github.com/snu-mllab/Context-Memory/blob/main/src/test.py))
-- [Update 24.01.12] We release a compression adapter for the general purpose which is trained on the mixture of datasets including samples from [RedPajama-v2](https://www.together.ai/blog/redpajama-data-v2) and [LMSYS-Chat-1M](https://huggingface.co/datasets/lmsys/lmsys-chat-1m) (# training samples is 500k). To test the adapter, set `--dataset pretrain` for download.py and inference.py.
+- To test with pre-defined examples, run the code without `-i` flag. You can modify test examples in [`./src/test.py`](https://github.com/snu-mllab/Context-Memory/blob/main/src/test.py).
+- [Update 24.01.12] We release a compression adapter for the general purpose which is trained on the mixture of datasets including samples from [RedPajama-v2](https://www.together.ai/blog/redpajama-data-v2) and [LMSYS-Chat-1M](https://huggingface.co/datasets/lmsys/lmsys-chat-1m) (# training samples is 500k). To test the adapter, download `--name pretrain` and set `--dataset pretrain` for inference.py.
+
+## Streaming setting
+- To conduct evaluation of CCM in a streaming setting with sliding window, run
+```
+python download.py --type data --name pg19
+python download.py --type model --name pretrain
+python inference.py --stream 
+```
+![main](image/stream.png)
+
 
 ## Dataset 
 - We provide tokenized data of [MetaICL](https://github.com/facebookresearch/MetaICL) and [SODA](https://github.com/skywalker023/sodaverse) for LLaMA. Smaller datasets, e.g., DailyDialog, will be downloaded and tokenized automatically during training. 
 - To download tokenized datasets, run
 ```
-python download.py --type data --dataset [metaicl/soda]
+python download.py --type data --name [metaicl/soda]
 ```
 - In our codes, `--dataset unified` refers to the mixture of MetaICL and SODA.
 - To use other datasets, you should make a collator function. Check for `./src/data`.
@@ -63,7 +74,7 @@ python run.py --train --dataset [unified/metaicl/dialog/lamp] --model llama-7b \
 ## Evaluation
 - We release optimized adapters via [Google Drive](https://drive.google.com/drive/folders/1qutEXBekpUTaE8fJhjKT-5DMzXpN55cx?usp=drive_link). To download, run
 ```
-python download.py --type model --dataset [unified/metaicl/dialog/lamp/pretrain]
+python download.py --type model --name [unified/metaicl/dialog/lamp/pretrain]
 ```
 - To test models, run
 ```
@@ -88,4 +99,6 @@ python run.py --dataset [metaicl/dialog/lamp] --model llama-7b \
       title={Compressed Context Memory For Online Language Model Interaction}, 
       author={Kim, Jang-Hyun and Yeom, Junyoung and Yun, Sangdoo and Song, Hyun Oh},
       journal={arXiv preprint arXiv:2312.03414},
-      year={2023
+      year={2023},
+}
+```
