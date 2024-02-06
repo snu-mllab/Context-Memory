@@ -1,7 +1,7 @@
 # Compressed Context Memory
 ![main](image/main.png)
 
-[**Paper**](https://janghyun1230.github.io/memory/static/ccm23.pdf) | [**arXiv**](https://arxiv.org/abs/2312.03414) | [**Project Page**](https://janghyun1230.github.io/memory/)
+[**Paper**](https://janghyun1230.github.io/paper/ccm23.pdf) | [**arXiv**](https://arxiv.org/abs/2312.03414) | [**Project Page**](https://janghyun1230.github.io/memory/)
 
 - Our approach dynamically creates **compressed key/value memory** during LLM interactions. 
 - Our approach only requires a **conditional LoRA for compression**.
