@@ -50,11 +50,11 @@ python inference.py --stream
 ```
 python download.py --type data --name [metaicl/soda]
 ```
-- In our codes, `--dataset unified` refers to the mixture of MetaICL and SODA.
+- In our codes, `--dataset unified` refers to the mixture of MetaICL and SODA. Download both datasets to use this argument. 
 - To use other datasets, you should make a collator function. Check for `./src/data`.
 
 ## Training
-- Our experiments basically run on a single A100 GPU. In the case of DailyDialog, which has a smaller context length, we can run on a single RTX 3090 GPU. 
+- Our experiments basically run on a single A100 80GB within 5~24h. In the case of DailyDialog, which has a smaller context length, we can run on a single RTX 3090 GPU. 
 - Set up a [Wandb](https://wandb.ai/) account for logging, and replace the username with yours in the wandb.entity field of `src/conf/config.yaml`.
 - We recommend first finetuning the LLaMA pretrained models on a dataset: 
 ```
