@@ -32,6 +32,7 @@ python inference.py -i -m llama-7b --eval_name [concat_recur/merge_recur]
 - This will launch an interactive chat system based on LLaMA-7B:  
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=55%>
 - To test with pre-defined examples, run the code without `-i` flag. You can modify test examples in [`./src/test.py`](https://github.com/snu-mllab/Context-Memory/blob/main/src/test.py).
+  <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/test.png" align="center" width=90%>
 - [Update 24.01.12] We release a compression adapter for the general purpose which is trained on the mixture of datasets including samples from [RedPajama-v2](https://www.together.ai/blog/redpajama-data-v2) and [LMSYS-Chat-1M](https://huggingface.co/datasets/lmsys/lmsys-chat-1m) (# training samples is 500k). To test the adapter, download `--name pretrain` and set `--dataset pretrain` for inference.py.
 
 ## Streaming setting
