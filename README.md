@@ -70,7 +70,7 @@ python run.py --train --dataset [unified/metaicl/dialog/lamp] --model llama-7b \
     --attn_type [concat_recur/merge_recur] --n_tok [# <COMP> tokens]
 ```
 - Default configurations for each dataset can be found in [`./src/config`](https://github.com/snu-mllab/Context-Memory/tree/05d0b542b7d6cc7339c9b13e66d4c15c600efe34/src/config). The arguments provided by the command line will overwrite the default configurations. 
-- For aligned models such as LLaMA-2-chat, it's okay to skip the previous finetuning step with `--comp_type no`. In this case, run the training codes without `--load_path`. 
+- For aligned models such as **LLaMA-2-chat**, it's okay to skip the previous finetuning step with `--comp_type no`. In this case, set `--model llama-2-7b-chat` and execute run.py without `--load_path` flag. 
 
 ## Evaluation
 - We release optimized adapters via [Google Drive](https://drive.google.com/drive/folders/1qutEXBekpUTaE8fJhjKT-5DMzXpN55cx?usp=drive_link). To download, run

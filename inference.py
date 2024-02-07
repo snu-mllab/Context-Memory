@@ -28,6 +28,7 @@ def run(args):
     eval_path = f"{SAVEPATH}/{wandb_group}/{args.eval_path}"
     base_cmd = f"{base_cmd} training.eval_path={eval_path}"
 
+    load_path = None
     if args.load_path != '':
         load_path = f"{SAVEPATH}/{wandb_group}/{args.load_path}"
         base_cmd = f"{base_cmd} training.load_path={load_path}"
@@ -41,7 +42,8 @@ def run(args):
 
     cmd = base_cmd.split()
     print(cmd)
-    print(f"\nFinetuned base model adapter path : {load_path}")
+    if load_path is not None:
+        print(f"\nFinetuned base model adapter path : {load_path}")
     print(f"Compression adapter path          : {eval_path}\n")
     os.execvp(cmd[0], cmd)
 
