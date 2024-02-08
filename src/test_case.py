@@ -13,7 +13,8 @@ from .data import mask
 
 
 def make_example():
-    """ Define example case for testing compression model!
+    """ Define an example case for testing compression model!
+        After each list element, the model will compress the context and construct the memory.
         The last sentence is the target output.
     """
     example = []
