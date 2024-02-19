@@ -45,14 +45,25 @@ if __name__ == "__main__":
 
     print(f"Download {args.name} {args.type} from Google Drive at {path}")
 
-    key = f"{args.type}_{args.name}"
-    gdown.download_folder(DriveLinks[key], output=path)
+    try:
+        key = f"{args.type}_{args.name}"
+        gdown.download_folder(DriveLinks[key], output=path)
 
-    if args.type == "data":
-        for name in ["llama", "llama2-chat"]:
-            f_name = os.path.join(path, f"{args.name}_{name}.zip")
-            if not os.path.exists(f_name):
-                continue
-            with zipfile.ZipFile(f_name, 'r') as zip_ref:
-                zip_ref.extractall(path)
-            os.remove(f_name)
+        if args.type == "data":
+            for name in ["llama", "llama2-chat"]:
+                f_name = os.path.join(path, f"{args.name}_{name}.zip")
+                if not os.path.exists(f_name):
+                    continue
+                with zipfile.ZipFile(f_name, 'r') as zip_ref:
+                    zip_ref.extractall(path)
+                os.remove(f_name)
+    except Exception as e:
+        print(e)
+        if args.type == "data":
+            print(
+                "Download failed. Please download files from the link https://drive.google.com/drive/folders/16bG_zCiEL27h5vVL_QN0OW3PH1iQdlf_"
+            )
+        elif args.type == "model":
+            print(
+                "Download failed. Please download files from the link https://drive.google.com/drive/folders/1qutEXBekpUTaE8fJhjKT-5DMzXpN55cx"
+            )

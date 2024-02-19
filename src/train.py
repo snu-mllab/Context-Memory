@@ -184,7 +184,6 @@ def main(args: DictConfig) -> None:
                 metrics = {f"{eval_name}_{k}": v for k, v in metrics.items()}
                 all_eval_metrics.update(metrics)
 
-                print(all_eval_metrics)
                 # Do Generation (ROUGE) evaluation
                 if not args.training.do_train and args.training.eval_rouge:
                     metrics = trainer.evaluate(to_eval)

@@ -8,7 +8,8 @@ from omegaconf.dictconfig import DictConfig
 from transformers import GenerationConfig
 from .arguments import Arguments, global_setup
 from .model import load_model, load_pretrained
-from .test_case import extract_comp_results, merge_comp_results, get_response, set_seperation_token
+from .utils import extract_comp_results, merge_comp_results, get_response
+from .test_case import set_seperation_token
 
 
 @torch.inference_mode()
@@ -62,13 +63,18 @@ def generate_and_compress(model, tokenizer, inputs, args):
 
     if args.training.comp.attn_type == "concat_recur":
         comp_loc = [True] * n_tok * inputs["n_turn"] + [False] * ctx_len + [True] * n_tok
-        comp_loc = torch.tensor(comp_loc, device='cuda')
-        past_key_values = extract_comp_results(outputs.past_key_values, comp_loc)
-
     elif args.training.comp.attn_type == "merge_recur":
         comp_loc = [True] * n_tok * (inputs["n_turn"] > 0) + [False] * ctx_len + [True] * n_tok
-        comp_loc = torch.tensor(comp_loc, device='cuda')
-        past_key_values = extract_comp_results(outputs.past_key_values, comp_loc)
+
+    if args.training.comp.sink:
+        if inputs["n_turn"] == 0:
+            comp_loc[0] = True
+        else:
+            comp_loc = [True] + comp_loc
+    comp_loc = torch.tensor(comp_loc, device='cuda')
+    past_key_values = extract_comp_results(outputs.past_key_values, comp_loc)
+
+    if args.training.comp.attn_type == "merge_recur":
         if inputs["n_turn"] > 0:
             past_key_values = merge_comp_results(past_key_values, n_tok, inputs["n_turn"])
 
@@ -85,7 +91,7 @@ def main(args: DictConfig) -> None:
         lora = args.training.peft
         load_pretrained(args.training.eval_path, model, lora=lora)
     model.eval()
-    set_seperation_token(tokenizer, args.data.dataset_name)
+    set_seperation_token(tokenizer, args.data.dataset_name, args.model.model_name_or_path)
 
     name = "CCM-concat" if "concat" in args.training.comp.attn_type else "CCM-merge"
     n_tok = len(tokenizer.comp_token_id)
@@ -100,7 +106,10 @@ def main(args: DictConfig) -> None:
         inputs["pos_id_offset"] = 0
         while True:
             query = input("\nUSER : ").strip()
+            if inputs["n_turn"] == 0 and "llama-2" in args.model.model_name_or_path.lower():
+                query = "System: You are a chatbot agent. \n\n" + query
             query = tokenizer.encode(query, add_special_tokens=False)
+
             if inputs["n_turn"] == 0:
                 query = [tokenizer.bos_token_id] + query + tokenizer.sep_token_id_model
             else:

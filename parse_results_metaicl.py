@@ -6,7 +6,7 @@ import argparse
 from path_config import SAVEPATH
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-d', '--dataset', type=str, default="all", help="training dataset name")
+parser.add_argument('-d', '--dataset', type=str, default="pretrain", help="training dataset name")
 parser.add_argument('-f',
                     '--folder',
                     type=str,
@@ -64,7 +64,7 @@ for file in files:
     results_dict_state[file] = results
 
 # Parse results from eval_results
-filename = 'eval_results.json'
+filename = 'all_results.json'
 results_dict = {}
 for file in files:
     res = defaultdict(list)

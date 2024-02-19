@@ -80,6 +80,7 @@ def run(args):
 
     if args.eval_path != '':
         args.attn_type, args.n_tok = parse_path(args.eval_path)
+        args.sink = True if "-sink" in args.eval_path else False
 
     if args.comp_type not in ["no", "neg_control"]:
         base_cmd = f"{base_cmd} training.comp.attn_type={args.attn_type}"

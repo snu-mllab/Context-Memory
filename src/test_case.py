@@ -9,7 +9,7 @@ from omegaconf.dictconfig import DictConfig
 from transformers import GenerationConfig
 from .arguments import Arguments, global_setup
 from .model import load_model, load_pretrained
-from .data import mask
+from .utils import extract_comp_results, merge_comp_results, prepare_attn_mask_comp, get_response
 
 
 def make_example():
@@ -22,60 +22,11 @@ def make_example():
     example.append("I'm fine. It's great.")
     example.append("I'm fine, too. Where are you from?")
     example.append("I'm from Korea.")
-    example.append("Oh, really? I'm from Korea, too. Do you remember my name? Please tell me.")
+    example.append(
+        "Oh, really? I'm from Korea, too. Do you remember my name? Please tell me.")  # query
     example.append("Yes, I remember. Your name is Janghyun.")  # target output
 
     return example
-
-
-def extract_comp_results(past_key_values, loc):
-    """Extract compressed memory keys/values from past_key_values
-    KV shape: [n_layer, 2 (key/value)] x [bsz, n_head, seq_len, dim_per_head]
-    """
-    loc = loc.squeeze()
-    n = len(loc)
-
-    past_key_values_comp = []
-    for n_layer in range(len(past_key_values)):
-        kv = [past_key_values[n_layer][k][:, :, :n][:, :, loc] for k in range(2)]
-        past_key_values_comp.append(kv)
-
-    return past_key_values_comp
-
-
-def merge_comp_results(past_key_values, n_tok, time_step):
-    """Merge compressed memory keys/values
-    KV shape: [n_layer, 2 (key/value)] x [bsz, n_head, n_comp_token x n_turn, dim_per_head]
-    """
-    assert past_key_values[0][0].shape[2] == 2 * n_tok
-
-    past_key_values_comp = []
-    for n_layer in range(len(past_key_values)):
-        alpha = 1 / (time_step + 1)
-        kv_l = past_key_values[n_layer]
-        kv = [(1 - alpha) * kv_l[k][:, :, :n_tok] + alpha * kv_l[k][:, :, -n_tok:] for k in range(2)
-             ]
-        past_key_values_comp.append(kv)
-
-    return past_key_values_comp
-
-
-def get_response(outputs, generation_inputs, tokenizer, is_encoder_decoder):
-    """ Decode generated outputs to string
-    """
-    generated_tokens = outputs.sequences
-    if not is_encoder_decoder:
-        # The prompt is included in the generated tokens. Remove this.
-        assert (generated_tokens[:, :generation_inputs.shape[-1]] == generation_inputs).all()
-        generated_tokens = generated_tokens[:, generation_inputs.shape[-1]:]
-
-    if generated_tokens.shape[-1] > 1:
-        generated_tokens = generated_tokens.squeeze()[:-1]  # Eos Token
-        response = tokenizer.decode(generated_tokens)
-    else:
-        response = ""
-
-    return response.strip()
 
 
 def prepare_input(tokenizer, example, sum_recur=True, time_step=6):
@@ -115,30 +66,7 @@ def prepare_input(tokenizer, example, sum_recur=True, time_step=6):
     return context_list, context, query, target
 
 
-def prepare_attn_mask_comp(tokenizer, input_ids, args):
-    """ Make attention mask for inputs with compression tokens
-    """
-    comp_token = tokenizer.comp_token_id
-    sum_token = tokenizer.sum_token_id
-
-    if args.training.comp.attn_type == "concat_recur":
-        comp_attn_fn = mask.get_comp_attn_mask_concat_recur
-    elif args.training.comp.attn_type == "merge_recur":
-        comp_attn_fn = mask.get_comp_attn_mask_recur
-    else:
-        raise NotImplementedError
-
-    if args.training.comp.attn_type == "merge":
-        attention_mask_comp = comp_attn_fn(input_ids, comp_token, sum_token=sum_token)
-    elif args.training.comp.attn_type == "merge_recur":
-        attention_mask_comp = comp_attn_fn(input_ids, sum_token)
-    else:
-        attention_mask_comp = comp_attn_fn(input_ids, comp_token)
-
-    return attention_mask_comp
-
-
-def set_seperation_token(tokenizer, dataset_name):
+def set_seperation_token(tokenizer, dataset_name, model_name):
     if dataset_name == "pretrain":
         tokenizer.sep_token_id_ = tokenizer.encode('a\nA:',
                                                    add_special_tokens=False)[1:2]  # enter token
@@ -148,10 +76,34 @@ def set_seperation_token(tokenizer, dataset_name):
         tokenizer.sep_token_id_ = tokenizer.encode('a\nA:', add_special_tokens=False)[1:]
 
     tokenizer.sep_token_id_model = tokenizer.encode('a\nOutput:', add_special_tokens=False)[1:]
+    if "llama-2" in model_name.lower():
+        tokenizer.sep_token_id_ = tokenizer.encode('a\nUser:', add_special_tokens=False)[1:]
+        tokenizer.sep_token_id_model = tokenizer.encode('a\nAssistant:',
+                                                        add_special_tokens=False)[1:]
 
 
 @torch.inference_mode()
-def test(model, tokenizer, inputs, args):
+def test_loss(model, tokenizer, inputs, args, pad_label=-100):
+    full_token = torch.cat([inputs["context"], inputs["query"], inputs["target"]], dim=-1)
+    label = torch.clone(full_token)
+    target_len = inputs["target"].shape[-1]
+    label[:, :-target_len] = pad_label  # evaluate loss on target
+
+    inputs_ = {}
+    inputs_["input_ids"] = full_token
+    inputs_["labels"] = label
+    inputs_["attention_mask"] = torch.ones_like(full_token)
+    inputs_["attention_mask_comp"] = prepare_attn_mask_comp(tokenizer, full_token, args)
+
+    # [Caution] If the <COMP> token is included in the labels, then the error will occur.
+    outputs = model(**inputs_, return_dict=True)
+    print(f"\nLoss on the ground truth target: {outputs.loss:.3f}")
+
+    return outputs.loss, outputs.logits
+
+
+@torch.inference_mode()
+def test_generation(model, tokenizer, inputs, args):
     """Test code for inference with compression
         * Check whether first three generation results are identical
     Returns:
@@ -209,13 +161,19 @@ def test(model, tokenizer, inputs, args):
 
         if args.training.comp.attn_type == "concat_recur":
             comp_loc = [True] * n_tok * i + [False] * c.shape[-1] + [True] * n_tok
-            comp_loc = torch.tensor(comp_loc, device='cuda')
-            past_key_values = extract_comp_results(outputs.past_key_values, comp_loc)
-
         elif args.training.comp.attn_type == "merge_recur":
             comp_loc = [True] * n_tok * (i > 0) + [False] * c.shape[-1] + [True] * n_tok
-            comp_loc = torch.tensor(comp_loc, device='cuda')
-            past_key_values = extract_comp_results(outputs.past_key_values, comp_loc)
+
+        if args.training.comp.sink:
+            if i == 0:
+                comp_loc[0] = True
+            else:
+                comp_loc = [True] + comp_loc
+        comp_loc = torch.tensor(comp_loc, device='cuda')
+        past_key_values = extract_comp_results(outputs.past_key_values, comp_loc)
+
+        if args.training.comp.attn_type == "merge_recur":
+            comp_loc = [True] * n_tok * (i > 0) + [False] * c.shape[-1] + [True] * n_tok
             if i > 0:
                 past_key_values = merge_comp_results(past_key_values, n_tok, i)
 
@@ -234,7 +192,7 @@ def test(model, tokenizer, inputs, args):
 
     ###############################
     # Generation without context
-    generation_inputs = inputs["query"]
+    generation_inputs = torch.clone(inputs["query"])
     generation_inputs[:, 0] = tokenizer.bos_token_id  # replace sep_token with bos_token
     gen_kwargs["attention_mask"] = torch.ones_like(generation_inputs)
     _ = gen_kwargs.pop("past_key_values", None)
@@ -244,8 +202,6 @@ def test(model, tokenizer, inputs, args):
     response = get_response(outputs, generation_inputs, tokenizer,
                             is_encoder_decoder).split('\n')[0]
     print(f"{'W/o Context':28s}: {response}")
-
-    return response, outputs.past_key_values
 
 
 @hydra.main(config_path="config", config_name="config", version_base='1.1')
@@ -257,19 +213,22 @@ def main(args: DictConfig) -> None:
         lora = args.training.peft
         load_pretrained(args.training.eval_path, model, lora=lora)
     model.eval()
-    set_seperation_token(tokenizer, args.data.dataset_name)
+    set_seperation_token(tokenizer, args.data.dataset_name, args.model.model_name_or_path)
 
     # Load sample data
     context_list, context, query, target = prepare_input(tokenizer, make_example())
 
     print(f'\n===========\n{tokenizer.decode(context + query).strip()}')
     print(f"{'Ground truth':28s}: {tokenizer.decode(target).strip()}")
+
     inputs = {}
     inputs["context_list"] = [torch.tensor(c, device='cuda').unsqueeze(0) for c in context_list]
     inputs["context"] = torch.tensor(context, device='cuda').unsqueeze(0)
     inputs["query"] = torch.tensor(query, device='cuda').unsqueeze(0)
+    inputs["target"] = torch.tensor(target, device='cuda').unsqueeze(0)
 
-    test(model, tokenizer, inputs, args)
+    test_generation(model, tokenizer, inputs, args)
+    test_loss(model, tokenizer, inputs, args)
 
 
 if __name__ == "__main__":

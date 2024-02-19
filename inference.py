@@ -22,6 +22,8 @@ def run(args):
     base_cmd = f"{base_cmd} training.comp.comp_type=online"
     base_cmd = f"{base_cmd} training.comp.attn_type={attn_type}"
     base_cmd = f"{base_cmd} training.comp.num_comp_tokens={n_tok}"
+    if "-sink" in args.eval_path:
+        base_cmd = f"{base_cmd} training.comp.sink=true"
 
     # Evaluation path
     wandb_group = args.dataset
@@ -87,11 +89,20 @@ if __name__ == "__main__":
                 args.eval_path = "finetune/llama-7b-no-online-concat_recur-ntok2"
 
         elif args.model == "llama-2-7b-chat":
-            args.dataset = "unified"
+            args.dataset = "pretrain"
+            print("Dataset is set to 'pretrain' for llama-2-7b-chat (check inference.py L93)")
+
             if args.eval_name == "merge_recur":
                 args.eval_path = "llama-2-7b-chat-online-merge_recur-ntok8"
             if args.eval_name == "concat_recur":
                 args.eval_path = "llama-2-7b-chat-online-concat_recur-ntok2"
+
+            if args.dataset == "pretrain":
+                args.eval_path += "-sink"
+            if "concat_recur" in args.eval_path:
+                args.eval_path += "_pajama"
+                # This version does not use Lmsys-Chat for compression training,
+                # which makes models refuse to reponse with personal information or memories.
 
     # Streaming model
     if args.stream:

@@ -1,8 +1,8 @@
 import os
 
 ####################
-CACHEDIR = os.environ['TRANSFORMERS_CACHE']  # huggingface model cache_dir
-LLAMADIR = "/storage/shared/janghyun"  # llama model directory (llama-7b-hf series)
+CACHEDIR = os.environ['TRANSFORMERS_CACHE']  # huggingface model cache_dir (e.g., LLaMA-2)
+LLAMADIR = "/storage/shared/janghyun"  # LLaMA model directory (llama-7b-hf)
 DATAPATH = "./dataset"  # tokenized data directory (containing folders e.g. metaicl, soda)
 SAVEPATH = "./result"  # result directory (containing folders of dataset names)
 ####################

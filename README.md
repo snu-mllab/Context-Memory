@@ -18,25 +18,28 @@ pip install -r requirements.txt
 - We use PyTorch 2.0.0.
 
 Supported Models: **LLaMA / LLaMA-2-chat**
-- Please convert the LLaMA weights into Hugging Face Transformers format using the [guideline](https://huggingface.co/docs/transformers/main/model_doc/llama).
+- The argument is `--model [llama-7b/llama-2-7b-chat]`.
 - In [`./path_config.py`](https://github.com/snu-mllab/Context-Memory/blob/main/path_config.py), please set directory configurations.
+- To use LLaMA, please convert the LLaMA weights into Hugging Face Transformers format using the [guideline](https://huggingface.co/docs/transformers/main/model_doc/llama).
 
 We provide download codes for datasets and models (see below). 
 - When gdown incurs errors, please directly download files from [dataset link](https://drive.google.com/drive/folders/16bG_zCiEL27h5vVL_QN0OW3PH1iQdlf_?usp=drive_link) and [model link](https://drive.google.com/drive/folders/1qutEXBekpUTaE8fJhjKT-5DMzXpN55cx?usp=drive_link) (put model subfolders in SAVEPATH and dataset subfolders in DATAPATH from path_config.py). 
 
 ## Demo: Interactive inference with compressed memory
 ```
-python download.py --type model --name unified  # Download adapters
-python inference.py -i -m llama-7b --eval_name [concat_recur/merge_recur]
+# Download adapters (set --name pretrain for LLaMA-2-chat)
+python download.py --type model --name unified
+python inference.py -i -m [llama-7b/llama-2-7b-chat] --eval_name concat_recur
 ```
 - This will launch an interactive chat system based on LLaMA-7B:  
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=55%>
 - To test with pre-defined examples, run the code without `-i` flag. You can modify test examples in [`./src/test_case.py`](https://github.com/snu-mllab/Context-Memory/blob/main/src/test_case.py).
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/test.png" align="center" width=90%>
+- Set `--eval_name merge_recut` to test CCM-merge.
 - [Update 24.01.12] We release a compression adapter for the general purpose which is trained on the mixture of datasets including samples from [RedPajama-v2](https://www.together.ai/blog/redpajama-data-v2) and [LMSYS-Chat-1M](https://huggingface.co/datasets/lmsys/lmsys-chat-1m) (# training samples is 500k). To test the adapter, download `--name pretrain` and set `--dataset pretrain` for inference.py.
 
 ## Streaming setting
-- To conduct evaluation of CCM in a streaming setting with sliding window, run
+- To conduct evaluation of CCM-concat (LLaMA) in a streaming setting with sliding window, run
 ```
 python download.py --type data --name pg19
 python download.py --type model --name pretrain
@@ -86,9 +89,9 @@ python run.py --dataset [metaicl/dialog/lamp] --model llama-7b \
 ```
 - Set `--train_dataset` for cross-dataset evaluation, e.g., to evaluate a model trained with an unified trainset on DailyDialog testset, set `--train_dataset unified --dataset dialog`. 
 - The parent directory of --load_path and --eval_path is `{SAVEPATH}/{args.dataset}`.
-  - The argument `--n_tok` will be automatically parsed from the path name.
   - As an example, `--eval_path finetune/llama-7b-no-online-concat_recur-ntok2 --attn_type concat_recur` will test CCM-concat with two compression tokens trained with --dataset.
   - Be aware to set the correct `--attn_type` of the adapter. 
+  - The argument `--n_tok` will be automatically parsed from the path name.
 - In the case of MetaICL/LaMP, we use --attn_type [concat/merge] (see [L218-223 in run.py](https://github.com/snu-mllab/Context-Memory/blob/05d0b542b7d6cc7339c9b13e66d4c15c600efe34/run.py#L218C3-L218C3)). To aggregate evaluation results on multiple test tasks, run `parse_results_metaicl.py --dataset [unified,metaicl] --folder ['',finetune]`.
 
 ## Reference
