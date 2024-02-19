@@ -27,15 +27,15 @@ We provide download codes for datasets and models (see below).
 
 ## Demo: Interactive inference with compressed memory
 ```
-# Download adapters (set --name pretrain for LLaMA-2-chat)
-python download.py --type model --name unified
+python download.py --type model --name [unified,pretrain]  # Download adapters
 python inference.py -i -m [llama-7b/llama-2-7b-chat] --eval_name concat_recur
 ```
 - This will launch an interactive chat system based on LLaMA-7B:  
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=55%>
 - To test with pre-defined examples, run the code without `-i` flag. You can modify test examples in [`./src/test_case.py`](https://github.com/snu-mllab/Context-Memory/blob/main/src/test_case.py).
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/test.png" align="center" width=90%>
-- Set `--eval_name merge_recut` to test CCM-merge.
+- To test CCM-merge, set `--eval_name merge_recur`.
+- We recommand to use `--name unified` for llama-7b and `--name pretrain` for llama-2-7b-chat.
 - [Update 24.01.12] We release a compression adapter for the general purpose which is trained on the mixture of datasets including samples from [RedPajama-v2](https://www.together.ai/blog/redpajama-data-v2) and [LMSYS-Chat-1M](https://huggingface.co/datasets/lmsys/lmsys-chat-1m) (# training samples is 500k). To test the adapter, download `--name pretrain` and set `--dataset pretrain` for inference.py.
 
 ## Streaming setting
@@ -73,7 +73,7 @@ python run.py --train --dataset [unified/metaicl/dialog/lamp] --model llama-7b \
     --attn_type [concat_recur/merge_recur] --n_tok [# <COMP> tokens]
 ```
 - Default configurations for each dataset can be found in [`./src/config`](https://github.com/snu-mllab/Context-Memory/tree/05d0b542b7d6cc7339c9b13e66d4c15c600efe34/src/config). The arguments provided by the command line will overwrite the default configurations. 
-- For aligned models such as **LLaMA-2-chat**, it's okay to skip the previous finetuning step with `--comp_type no`. In this case, set `--model llama-2-7b-chat` and execute run.py without `--load_path` flag. 
+- For aligned models such as **LLaMA-2-chat**, it's okay to skip the first finetuning step with `--comp_type no`. In this case, set `--model llama-2-7b-chat` and execute run.py without `--load_path` flag. 
 
 ## Evaluation
 - We release optimized adapters via [Google Drive](https://drive.google.com/drive/folders/1qutEXBekpUTaE8fJhjKT-5DMzXpN55cx?usp=drive_link). To download, run
@@ -87,11 +87,11 @@ python run.py --dataset [metaicl/dialog/lamp] --model llama-7b \
     --eval_path [path for compression adapter] \ 
     --attn_type [concat_recur/merge_recur]
 ```
-- Set `--train_dataset` for cross-dataset evaluation, e.g., to evaluate a model trained with an unified trainset on DailyDialog testset, set `--train_dataset unified --dataset dialog`. 
-- The parent directory of --load_path and --eval_path is `{SAVEPATH}/{args.dataset}`.
-  - As an example, `--eval_path finetune/llama-7b-no-online-concat_recur-ntok2 --attn_type concat_recur` will test CCM-concat with two compression tokens trained with --dataset.
+- Set `--train_dataset` for cross-dataset evaluation; e.g., to evaluate a model trained with an unified trainset on DailyDialog testset, set `--train_dataset unified --dataset dialog`. 
+- The parent directory of load/eval paths are `{SAVEPATH}/{args.train_dataset}`.
+  - As an example, `--eval_path finetune/llama-7b-no-online-concat_recur-ntok2 --attn_type concat_recur` will test CCM-concat with two compression tokens.
   - Be aware to set the correct `--attn_type` of the adapter. 
-  - The argument `--n_tok` will be automatically parsed from the path name.
+  - The argument `--n_tok` will be automatically parsed from the eval_path.
 - In the case of MetaICL/LaMP, we use --attn_type [concat/merge] (see [L218-223 in run.py](https://github.com/snu-mllab/Context-Memory/blob/05d0b542b7d6cc7339c9b13e66d4c15c600efe34/run.py#L218C3-L218C3)). To aggregate evaluation results on multiple test tasks, run `parse_results_metaicl.py --dataset [unified,metaicl] --folder ['',finetune]`.
 
 ## Reference
