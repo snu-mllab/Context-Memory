@@ -12,10 +12,10 @@ from path_config import DATAPATH
 
 
 def path_name(model_name):
-    if "llama-2" in model_name.lower():
-        path_base = os.path.join(DATAPATH, f"soda/llama2-chat")
-    elif "llama" in model_name.lower():
+    if "llama" in model_name.lower():
         path_base = os.path.join(DATAPATH, f"soda/llama")
+    elif "mistral" in model_name.lower():
+        path_base = os.path.join(DATAPATH, f"dialog/mistral")
     else:
         raise ValueError(f"Not supported model name: {model_name}")
 
@@ -23,6 +23,7 @@ def path_name(model_name):
 
 
 class DialogueDataset():
+
     def __init__(self, tokenizer, comp_token=[], online=True, add_comp_token=True):
         self.tokenizer = tokenizer
         self.model_name = tokenizer.name_or_path.split('/')[-1]
@@ -67,8 +68,8 @@ class DialogueDataset():
 
         self.train_dataset = Dataset.from_dict(self.trainset, split='train')
         self.eval_dataset = DatasetDict({
-            f'turn_{k}': Dataset.from_dict(self._subsample(self.valset, n_turn=k),
-                                           split=f'eval_{k}')
+            f'turn_{k}':
+                Dataset.from_dict(self._subsample(self.valset, n_turn=k), split=f'eval_{k}')
             for k in [3, 6, 9]
         })
 

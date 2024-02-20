@@ -49,10 +49,10 @@ def load_tokenized_data(meta_task="hr_to_lr",
     Returns: train_dict, eval_dict, eval_demon_dict
     """
     if is_llama:
-        if "llama-2" in model_name.lower():
-            path_base = os.path.join(DATAPATH, f"metaicl/llama2-chat")
-        elif "llama" in model_name.lower():
+        if "llama" in model_name.lower():
             path_base = os.path.join(DATAPATH, f"metaicl/llama")
+        elif "mistral" in model_name.lower():
+            path_base = os.path.join(DATAPATH, f"metaicl/mistral")
     else:
         path_base = os.path.join(DATAPATH, f"metaicl/flan-t5")
 
@@ -167,6 +167,7 @@ def analyze_data_length(tokenizer, data_dict, max_length=256):
 
 
 class MetaICLData:
+
     def __init__(
         self,
         tokenizer,
@@ -230,14 +231,13 @@ class MetaICLData:
                                                     remove=remove,
                                                     offset=offset)
         if not eval_train_task:
-            self.eval_dataset = DatasetDict(
-                {k: Dataset.from_dict(v, split='eval_' + k)
-                 for k, v in self.eval_dict.items()})
+            self.eval_dataset = DatasetDict({
+                k: Dataset.from_dict(v, split='eval_' + k) for k, v in self.eval_dict.items()
+            })
 
             self.eval_dict_option = add_options(self.eval_dict, verbose=True)
             self.eval_dataset_option = DatasetDict({
-                k: Dataset.from_dict(v, split='eval_' + k)
-                for k, v in self.eval_dict_option.items()
+                k: Dataset.from_dict(v, split='eval_' + k) for k, v in self.eval_dict_option.items()
             })
 
             for seed in self.eval_demon_dict.keys():
@@ -263,9 +263,9 @@ class MetaICLData:
             }
             print(f"Select {len(self.eval_dict)} eval tasks with more than 50 examples, 4 demons")
 
-            self.eval_dataset = DatasetDict(
-                {k: Dataset.from_dict(v, split='eval_' + k)
-                 for k, v in self.eval_dict.items()})
+            self.eval_dataset = DatasetDict({
+                k: Dataset.from_dict(v, split='eval_' + k) for k, v in self.eval_dict.items()
+            })
 
             max_eval_num = 1000
             self.eval_dataset = self.eval_dataset.shuffle(seed=0)
