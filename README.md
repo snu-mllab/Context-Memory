@@ -21,7 +21,7 @@ Supported Models: **LLaMA / LLaMA-2-chat / Mistral**
 - The argument is `--model [llama-7b,llama-2-7b-chat, mistral-7b-inst]`.
 - In [`./path_config.py`](https://github.com/snu-mllab/Context-Memory/blob/main/path_config.py), please set directory configurations.
 - To use LLaMA, please convert the LLaMA weights into Hugging Face Transformers format using the [guideline](https://huggingface.co/docs/transformers/main/model_doc/llama).
-- [Update 24.02.21] We support Mistral models! To use the model, please upgrade `pip intall transformers==4.37.2 accelerate==0.27.2`
+- [Update 24.02.21] We support Mistral models! To use the model, please upgrade `pip install transformers==4.37.2 accelerate==0.27.2`
 
 We provide download codes for datasets and models (see below). 
 - When gdown incurs errors, please directly download files from [dataset link](https://drive.google.com/drive/folders/16bG_zCiEL27h5vVL_QN0OW3PH1iQdlf_?usp=drive_link) and [model link](https://drive.google.com/drive/folders/1qutEXBekpUTaE8fJhjKT-5DMzXpN55cx?usp=drive_link) (put model subfolders in SAVEPATH and dataset subfolders in DATAPATH from path_config.py). 
@@ -40,7 +40,7 @@ python inference.py -i -m [llama-7b,llama-2-7b-chat] --eval_name concat_recur
 - [Update 24.01.12] We release a compression adapter for the general purpose which is trained on the mixture of datasets including samples from [RedPajama-v2](https://www.together.ai/blog/redpajama-data-v2) and [LMSYS-Chat-1M](https://huggingface.co/datasets/lmsys/lmsys-chat-1m) (# training samples is 500k). To test the adapter, download `--name pretrain` and set `--dataset pretrain` for inference.py.
 
 ## Streaming setting
-- To conduct evaluation of CCM-concat (LLaMA) in a streaming setting with sliding window, run
+- To conduct the evaluation of CCM-concat (LLaMA) in a streaming setting with a sliding window, run
 ```
 python download.py --type data --name pg19
 python download.py --type model --name pretrain
@@ -77,7 +77,7 @@ python run.py --train --dataset [unified,metaicl,dialog,lamp] --model llama-7b \
     --attn_type [concat_recur,merge_recur] --n_tok [# <COMP> tokens]
 ```
 - Default configurations for each dataset can be found in [`./src/config`](https://github.com/snu-mllab/Context-Memory/tree/05d0b542b7d6cc7339c9b13e66d4c15c600efe34/src/config). The arguments provided by the command line will overwrite the default configurations. 
-- If you have skipped the step 1, then execute run.py without the `--load_path` flag. 
+- If you have skipped step 1, then execute run.py without the `--load_path` flag. 
 
 ## Evaluation
 - We release optimized adapters via [Google Drive](https://drive.google.com/drive/folders/1qutEXBekpUTaE8fJhjKT-5DMzXpN55cx?usp=drive_link). To download, run
@@ -91,8 +91,8 @@ python run.py --dataset [metaicl,dialog,lamp] --model llama-7b \
     --eval_path [path for compression adapter] \ 
     --attn_type [concat_recur,merge_recur]
 ```
-- Set `--train_dataset` for cross-dataset evaluation; e.g., to evaluate a model trained with an unified trainset on DailyDialog testset, set `--train_dataset unified --dataset dialog`. 
-- The parent directory of load/eval paths are `{SAVEPATH}/{args.train_dataset}`.
+- Set `--train_dataset` for cross-dataset evaluation; e.g., to evaluate a model trained with a unified trainset on DailyDialog testset, set `--train_dataset unified --dataset dialog`. 
+- The parent directory of load/eval paths is `{SAVEPATH}/{args.train_dataset}`.
   - As an example, `--eval_path finetune/llama-7b-no-online-concat_recur-ntok2 --attn_type concat_recur` will test CCM-concat with two compression tokens.
   - Be aware to set the correct `--model` and `--attn_type` of the adapter. 
   - The argument `--n_tok` will be automatically parsed from the eval_path.
