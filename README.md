@@ -7,7 +7,7 @@
 - Our approach only requires a **conditional LoRA for compression**.
 - We propose a **fully parallelized training** strategy for recurrent compression procedures. 
 - We support evaluations on diverse applications: conversation, multi-task ICL, and personalization. 
-- [Update 24.02.06] Streaming setting codes updated.  
+- [Update 24.02.06] Streaming setting evaluation is available.  
 
 ## Setup
 ```
@@ -17,10 +17,11 @@ pip install -r requirements.txt
 ```
 - We use PyTorch 2.0.0.
 
-Supported Models: **LLaMA / LLaMA-2-chat**
-- The argument is `--model [llama-7b/llama-2-7b-chat]`.
+Supported Models: **LLaMA / LLaMA-2-chat / Mistral**
+- The argument is `--model [llama-7b,llama-2-7b-chat, mistral-7b-inst]`.
 - In [`./path_config.py`](https://github.com/snu-mllab/Context-Memory/blob/main/path_config.py), please set directory configurations.
 - To use LLaMA, please convert the LLaMA weights into Hugging Face Transformers format using the [guideline](https://huggingface.co/docs/transformers/main/model_doc/llama).
+- [Update 24.02.21] We support Mistral models! To use the model, please upgrade `pip intall transformers==4.37.2 accelerate==0.27.2`
 
 We provide download codes for datasets and models (see below). 
 - When gdown incurs errors, please directly download files from [dataset link](https://drive.google.com/drive/folders/16bG_zCiEL27h5vVL_QN0OW3PH1iQdlf_?usp=drive_link) and [model link](https://drive.google.com/drive/folders/1qutEXBekpUTaE8fJhjKT-5DMzXpN55cx?usp=drive_link) (put model subfolders in SAVEPATH and dataset subfolders in DATAPATH from path_config.py). 
@@ -28,14 +29,14 @@ We provide download codes for datasets and models (see below).
 ## Demo: Interactive inference with compressed memory
 ```
 python download.py --type model --name [unified,pretrain]  # Download adapters
-python inference.py -i -m [llama-7b/llama-2-7b-chat] --eval_name concat_recur
+python inference.py -i -m [llama-7b,llama-2-7b-chat] --eval_name concat_recur
 ```
 - This will launch an interactive chat system based on LLaMA-7B:  
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=55%>
 - To test with pre-defined examples, run the code without `-i` flag. You can modify test examples in [`./src/test_case.py`](https://github.com/snu-mllab/Context-Memory/blob/main/src/test_case.py).
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/test.png" align="center" width=90%>
+- In default, download adapters with `--name unified` for llama-7b and `--name pretrain` for llama-2-7b-chat.
 - To test CCM-merge, set `--eval_name merge_recur`.
-- We recommand to use `--name unified` for llama-7b and `--name pretrain` for llama-2-7b-chat.
 - [Update 24.01.12] We release a compression adapter for the general purpose which is trained on the mixture of datasets including samples from [RedPajama-v2](https://www.together.ai/blog/redpajama-data-v2) and [LMSYS-Chat-1M](https://huggingface.co/datasets/lmsys/lmsys-chat-1m) (# training samples is 500k). To test the adapter, download `--name pretrain` and set `--dataset pretrain` for inference.py.
 
 ## Streaming setting
@@ -52,7 +53,7 @@ python inference.py --stream
 - We provide tokenized data of [MetaICL](https://github.com/facebookresearch/MetaICL) and [SODA](https://github.com/skywalker023/sodaverse) for LLaMA. Smaller datasets, e.g., DailyDialog, will be downloaded and tokenized automatically during training. 
 - To download tokenized datasets, run
 ```
-python download.py --type data --name [metaicl/soda]
+python download.py --type data --name [metaicl,soda]
 ```
 - In our codes, `--dataset unified` refers to the mixture of MetaICL and SODA. Download both datasets to use this argument. 
 - To use other datasets, you should make a collator function. Check for `./src/data`.
@@ -60,39 +61,43 @@ python download.py --type data --name [metaicl/soda]
 ## Training
 - Our experiments basically run on a single A100 80GB within 5~24h. In the case of DailyDialog, which has a smaller context length, we can run on a single RTX 3090 GPU. 
 - Set up a [Wandb](https://wandb.ai/) account for logging, and replace the username with yours in the wandb.entity field of `src/conf/config.yaml`.
-- We recommend first finetuning the LLaMA pretrained models on a dataset: 
+
+**Step 1: Fintuning LLaMA.** We recommend first finetuning the LLaMA pretrained models on a dataset: 
 ```
-python run.py --train --dataset [unified/metaicl/dialog/lamp] --model llama-7b \
+python run.py --train --dataset [unified,metaicl,dialog,lamp] --model llama-7b \
     --comp_type no
 ```
 - The LoRA adapters will be saved at `{SAVEPATH}/{dataset}/llama-7b-no`. Set SAVEPATH in path_config.py.
-- Then we train our compression adapter as
+- For aligned models such as **LLaMA-2-chat/Mistral-instruct**, it's okay to skip this step. 
+
+**Step 2: Training a compression adapter.** 
 ```
-python run.py --train --dataset [unified/metaicl/dialog/lamp] --model llama-7b \
+python run.py --train --dataset [unified,metaicl,dialog,lamp] --model llama-7b \
     --load_path llama-7b-no \ 
-    --attn_type [concat_recur/merge_recur] --n_tok [# <COMP> tokens]
+    --attn_type [concat_recur,merge_recur] --n_tok [# <COMP> tokens]
 ```
 - Default configurations for each dataset can be found in [`./src/config`](https://github.com/snu-mllab/Context-Memory/tree/05d0b542b7d6cc7339c9b13e66d4c15c600efe34/src/config). The arguments provided by the command line will overwrite the default configurations. 
-- For aligned models such as **LLaMA-2-chat**, it's okay to skip the first finetuning step with `--comp_type no`. In this case, set `--model llama-2-7b-chat` and execute run.py without `--load_path` flag. 
+- If you have skipped the step 1, then execute run.py without the `--load_path` flag. 
 
 ## Evaluation
 - We release optimized adapters via [Google Drive](https://drive.google.com/drive/folders/1qutEXBekpUTaE8fJhjKT-5DMzXpN55cx?usp=drive_link). To download, run
 ```
-python download.py --type model --name [unified/metaicl/dialog/lamp/pretrain]
+python download.py --type model --name [unified,pretrain,metaicl,dialog,lamp]
 ```
 - To test models, run
 ```
-python run.py --dataset [metaicl/dialog/lamp] --model llama-7b \
+python run.py --dataset [metaicl,dialog,lamp] --model llama-7b \
     --load_path llama-7b-no \ 
     --eval_path [path for compression adapter] \ 
-    --attn_type [concat_recur/merge_recur]
+    --attn_type [concat_recur,merge_recur]
 ```
 - Set `--train_dataset` for cross-dataset evaluation; e.g., to evaluate a model trained with an unified trainset on DailyDialog testset, set `--train_dataset unified --dataset dialog`. 
 - The parent directory of load/eval paths are `{SAVEPATH}/{args.train_dataset}`.
   - As an example, `--eval_path finetune/llama-7b-no-online-concat_recur-ntok2 --attn_type concat_recur` will test CCM-concat with two compression tokens.
-  - Be aware to set the correct `--attn_type` of the adapter. 
+  - Be aware to set the correct `--model` and `--attn_type` of the adapter. 
   - The argument `--n_tok` will be automatically parsed from the eval_path.
-- In the case of MetaICL/LaMP, we use --attn_type [concat/merge] (see [L218-223 in run.py](https://github.com/snu-mllab/Context-Memory/blob/05d0b542b7d6cc7339c9b13e66d4c15c600efe34/run.py#L218C3-L218C3)). To aggregate evaluation results on multiple test tasks, run `parse_results_metaicl.py --dataset [unified,metaicl] --folder ['',finetune]`.
+- For LLaMA-2-chat or Mistral-instruct, we don't need the `--load_path` flag. 
+- In the case of MetaICL and LaMP, we use --attn_type [concat,merge] (see [L218-223 in run.py](https://github.com/snu-mllab/Context-Memory/blob/05d0b542b7d6cc7339c9b13e66d4c15c600efe34/run.py#L218C3-L218C3)). To aggregate evaluation results on multiple test tasks, run `parse_results_metaicl.py --dataset [unified,metaicl] --folder ['',finetune]`.
 
 ## Reference
 - This code is created based on the [Gisting repository](https://github.com/jayelm/gisting).

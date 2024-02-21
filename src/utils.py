@@ -157,3 +157,14 @@ def get_response(outputs, generation_inputs, tokenizer, is_encoder_decoder):
         response = ""
 
     return response.strip()
+
+
+def load_from_safetensor(path):
+    from safetensors import safe_open
+
+    tensors = {}
+    with safe_open(path, framework="pt") as f:
+        for k in f.keys():
+            tensors[k] = f.get_tensor(k)
+
+    return tensors

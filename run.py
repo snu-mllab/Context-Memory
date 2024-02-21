@@ -208,7 +208,8 @@ if __name__ == "__main__":
                         default="llama-7b",
                         choices=[
                             "llama-7b", "llama-13b", "llama-2-7b", "llama-2-7b-chat", "llama-2-13b",
-                            "llama-2-13b-chat", "flan-t5-base", "flan-t5-large", "llama-debug"
+                            "llama-2-13b-chat", "mistral-7b", "mistral-7b-inst", "flan-t5-base",
+                            "flan-t5-large", "llama-debug", "mistral-debug"
                         ])
     parser.add_argument("--sepembed",
                         type=str2bool,
@@ -282,7 +283,7 @@ if __name__ == "__main__":
         type=str,
         default='',
         help=
-        "Path for the full-context finetuned adapter (not required for when using pretrained LLaMA-2-chat)"
+        "Path for the full-context finetuned adapter (not required for when using the already finetuned models, e.g., LLaMA-2-chat)"
     )
     parser.add_argument("--eval_path", type=str, default='', help="Compression adapter path")
     parser.add_argument("--generation_max_length", type=int, default=-1)

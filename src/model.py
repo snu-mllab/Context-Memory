@@ -12,13 +12,16 @@ from transformers import (
 from peft import LoraConfig, get_peft_model, get_peft_model_state_dict
 
 from .arch.config import PRETRAINED_VOCAB_SIZE_LLAMA, PRETRAINED_VOCAB_SIZE_T5
-from .arch.gist_t5 import GistT5ForConditionalGeneration
-from .arch.ccm_t5 import T5ForConditionalGeneration_CCM
-from .arch.gist_llama import GistLlamaForCausalLM
-from .arch.ccm_llama import LlamaForCausalLM_CCM
-from .arch.ccm_llama_stream import LlamaForCausalLM_CCM_Stream
+try:
+    from .arch.gist_t5 import GistT5ForConditionalGeneration
+    from .arch.ccm_t5 import T5ForConditionalGeneration_CCM
+    from .arch.gist_llama import GistLlamaForCausalLM
+    from .arch.ccm_llama import LlamaForCausalLM_CCM
+    from .arch.ccm_llama_stream import LlamaForCausalLM_CCM_Stream
+except:
+    from .arch.ccm_mistral import MistralForCausalLM_CCM
 
-from .utils import SeparatedEmbedding, transpose
+from .utils import SeparatedEmbedding, transpose, load_from_safetensor
 from . import peft_custom
 
 
@@ -124,7 +127,10 @@ def get_conditional_lora(args, model):
 
 def load_lora_weight(path, model, merge=False):
     # Embedding can be included
-    lora_weight_saved = torch.load(os.path.join(path, 'pytorch_model.bin'))
+    try:
+        lora_weight_saved = torch.load(os.path.join(path, 'pytorch_model.bin'))
+    except:
+        lora_weight_saved = load_from_safetensor(os.path.join(path, 'model.safetensors'))
 
     if merge:
         config = LoraConfig().from_pretrained(path)
@@ -185,7 +191,11 @@ def load_pretrained(path, model, lora=False, merge=False):
     if lora:
         load_lora_weight(path, model, merge=merge)
     else:
-        state_dict = torch.load(os.path.join(path, 'pytorch_model.bin'))
+        try:
+            state_dict = torch.load(os.path.join(path, 'pytorch_model.bin'))
+        except:
+            state_dict = load_from_safetensor(os.path.join(path, 'model.safetensors'))
+
         model.load_state_dict(state_dict)
         print(f"Load model from {path}")
 
@@ -211,22 +221,23 @@ def load_model(args):
 
     ## Tokenizer
     args.is_t5 = any(t in model_path.lower() for t in ("t5", "tk"))
-    args.is_llama = any(t in model_path.lower() for t in ("llama",))
+    args.is_llama = any(t in model_path.lower() for t in ("llama", "mistral"))
     if args.model.tokenizer_name:
         tokenizer = AutoTokenizer.from_pretrained(args.model.tokenizer_name,
                                                   use_fast=args.model.use_fast_tokenizer,
                                                   **config_kwargs)
     elif model_path:
-        if args.is_llama:
+        if "llama" in model_path.lower():
             tokenizer = LlamaTokenizer.from_pretrained(model_path,
                                                        use_fast=args.model.use_fast_tokenizer,
                                                        **config_kwargs)
-            tokenizer.pad_token = tokenizer.eos_token
-            tokenizer.padding_side = "left"
         else:
             tokenizer = AutoTokenizer.from_pretrained(model_path,
                                                       use_fast=args.model.use_fast_tokenizer,
                                                       **config_kwargs)
+        if args.is_llama:
+            tokenizer.pad_token = tokenizer.eos_token
+            tokenizer.padding_side = "left"
     else:
         raise ValueError("check tokenizer_name or model_name_or_path")
 
@@ -242,13 +253,17 @@ def load_model(args):
             model_cls = T5ForConditionalGeneration_CCM
             print("Use conditional LoRA!")
     elif args.is_llama:
-        model_cls = GistLlamaForCausalLM
         if args.training.comp.cond_lora:
-            model_cls = LlamaForCausalLM_CCM
+            if "mistral" in model_path.lower():
+                model_cls = MistralForCausalLM_CCM
+            else:
+                model_cls = LlamaForCausalLM_CCM
             print("Use conditional LoRA!")
             if args.model.stream:
                 model_cls = LlamaForCausalLM_CCM_Stream  # key position ids reset
                 print("Use streaming model!")
+        else:
+            model_cls = GistLlamaForCausalLM
     else:
         raise ValueError(f"Model type {model_path} not supported")
 
@@ -359,10 +374,11 @@ def update_compression_token(args, model, tokenizer):
                         model.lm_head.weight.requires_grad = False
 
     if "merge" in args.training.comp.attn_type:
-        tokenizer.comp_token_id = tokenizer.additional_special_tokens_ids[:n_tok // 2]
-        tokenizer.sum_token_id = tokenizer.additional_special_tokens_ids[n_tok // 2:]
+        n_comp_tok = n_tok // 2
+        tokenizer.comp_token_id = tokenizer.additional_special_tokens_ids[-n_tok:-n_comp_tok]
+        tokenizer.sum_token_id = tokenizer.additional_special_tokens_ids[-n_comp_tok:]
     else:
-        tokenizer.comp_token_id = tokenizer.additional_special_tokens_ids
+        tokenizer.comp_token_id = tokenizer.additional_special_tokens_ids[-n_tok:]
 
     if args.is_t5:
         model.encoder.comp_token = tokenizer.comp_token_id
@@ -371,4 +387,4 @@ def update_compression_token(args, model, tokenizer):
         model.update_comp_token(tokenizer.comp_token_id, tokenizer.sum_token_id)
 
     print("comp tokens (including sum tokens if exist): ",
-          ''.join(tokenizer.additional_special_tokens))
+          ''.join(tokenizer.additional_special_tokens[-n_tok:]))

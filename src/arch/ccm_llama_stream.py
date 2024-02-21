@@ -355,7 +355,7 @@ class LlamaModelCCM(LlamaPreTrainedModel):
 
         return combined_attention_mask
 
-    def get_comp_mask(self, input_ids):
+    def get_comp_sum_mask(self, input_ids):
         """
         Returns:
             comp_mask [batch_size, seq_len]: 1 for comp/sum token, 0 for others
@@ -413,7 +413,7 @@ class LlamaModelCCM(LlamaPreTrainedModel):
     ) -> Union[Tuple, BaseModelOutputWithPast]:
         #####################################################
         ##### Modified: Get compression masks for conditional inference and memory update #####
-        comp_mask, sum_mask, sum_attn_mask = self.get_comp_mask(input_ids)
+        comp_mask, sum_mask, sum_attn_mask = self.get_comp_sum_mask(input_ids)
         #####################################################
 
         output_attentions = (output_attentions
@@ -819,13 +819,6 @@ class LlamaForCausalLM_CCM_Stream(LlamaPreTrainedModel, GistGenerationMixin):
             input_ids = input_ids[:, -1:]
             position_ids = position_ids[:, -1:]
 
-        # Check size
-        if (past_key_values is not None) and (attention_mask is not None):
-            input_len = input_ids.shape[1]
-            kv_len = past_key_values[0][0].shape[2]
-            attn_len = attention_mask.shape[-1]
-            t = f"kv: {kv_len}, input: {input_len}, attn: {attn_len}"
-            assert (input_len == attn_len) or (kv_len + input_len == attn_len), t
         #####################################################
 
         # if `inputs_embeds` are passed, we only want to use them in the 1st

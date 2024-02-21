@@ -14,7 +14,7 @@ import datasets
 import transformers
 from hydra.core.config_store import ConfigStore
 from omegaconf import DictConfig, OmegaConf
-from transformers import Seq2SeqTrainingArguments, TrainingArguments, GenerationConfig
+from transformers import TrainingArguments, GenerationConfig
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +120,11 @@ class CompressionTrainingArguments(TrainingArguments):
 
     max_source_length: int = 256
     max_target_length: int = 256
+
+    debug: str = ''
+    fsdp: str = ''
+    sharded_ddp: str = ''
+    neftune_noise_alpha: Optional[float] = None
 
     def __post_init__(self):
         # Don't run post-init until ready to convert to TrainingArgs

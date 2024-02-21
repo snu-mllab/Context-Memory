@@ -76,7 +76,7 @@ def set_seperation_token(tokenizer, dataset_name, model_name):
         tokenizer.sep_token_id_ = tokenizer.encode('a\nA:', add_special_tokens=False)[1:]
 
     tokenizer.sep_token_id_model = tokenizer.encode('a\nOutput:', add_special_tokens=False)[1:]
-    if "llama-2" in model_name.lower():
+    if "chat" in model_name.lower() or "inst" in model_name.lower():
         tokenizer.sep_token_id_ = tokenizer.encode('a\nUser:', add_special_tokens=False)[1:]
         tokenizer.sep_token_id_model = tokenizer.encode('a\nAssistant:',
                                                         add_special_tokens=False)[1:]

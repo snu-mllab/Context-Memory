@@ -106,7 +106,9 @@ def main(args: DictConfig) -> None:
         inputs["pos_id_offset"] = 0
         while True:
             query = input("\nUSER : ").strip()
-            if inputs["n_turn"] == 0 and "llama-2" in args.model.model_name_or_path.lower():
+            model_name = args.model.model_name_or_path.lower()
+            if inputs["n_turn"] == 0 and ("chat" in model_name.lower() or
+                                          "inst" in model_name.lower()):
                 query = "System: You are a chatbot agent. \n\n" + query
             query = tokenizer.encode(query, add_special_tokens=False)
 

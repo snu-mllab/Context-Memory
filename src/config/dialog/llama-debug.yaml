@@ -13,9 +13,9 @@ training:
   lr_scheduler_type: constant
 
   logging_steps: 1
-  eval_steps: 10
-  save_steps: 10
-  max_steps: 10
+  eval_steps: 2
+  save_steps: 2
+  max_steps: 2
 
 wandb:
   name: debug

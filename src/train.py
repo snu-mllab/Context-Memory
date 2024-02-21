@@ -111,11 +111,16 @@ def main(args: DictConfig) -> None:
     if args.training.evaluate_before_train:
         custom_callbacks.append(EvaluateFirstStepCallback())
 
+    # Fix: due to Transformers version confiction
+    if "mistral" in args.model.model_name_or_path:
+        args.training.do_eval = False
+        args.training.evaluation_strategy = "no"
+
     trainer = CompSeq2SeqTrainer(
         model=model,
         args=args.training,
         train_dataset=train_dataset if args.training.do_train else None,
-        eval_dataset=dict(eval_dataset) if args.training.do_eval else None,
+        eval_dataset=eval_dataset if args.training.do_eval else None,
         tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=compute_metrics
@@ -146,6 +151,10 @@ def main(args: DictConfig) -> None:
         trainer.log_metrics("train", metrics)
         trainer.save_metrics("train", metrics)
         trainer.save_state()
+
+    # Fix: due to Transformers version confiction
+    if "mistral" in args.model.model_name_or_path:
+        args.training.do_eval = True
 
     if args.training.do_eval:  # always run evaluation
         all_eval_metrics = {}

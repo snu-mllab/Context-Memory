@@ -50,7 +50,7 @@ if __name__ == "__main__":
         gdown.download_folder(DriveLinks[key], output=path)
 
         if args.type == "data":
-            for name in ["llama", "llama2-chat"]:
+            for name in ["llama"]:
                 f_name = os.path.join(path, f"{args.name}_{name}.zip")
                 if not os.path.exists(f_name):
                     continue

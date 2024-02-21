@@ -56,7 +56,7 @@ if __name__ == "__main__":
                         "-m",
                         type=str,
                         default="llama-7b",
-                        choices=["llama-7b", "llama-2-7b-chat"])
+                        choices=["llama-7b", "llama-2-7b-chat", "mistral-7b-inst"])
     parser.add_argument("--dataset",
                         "-d",
                         type=str,

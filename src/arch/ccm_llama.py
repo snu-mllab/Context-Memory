@@ -100,12 +100,12 @@ class LlamaAttention(nn.Module):
         embed_len = kv_seq_len
         if max_id is not None:
             embed_len = max_id
-        #####################################################
 
         cos, sin = self.rotary_emb(value_states, seq_len=embed_len)
+        #####################################################
+
         query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin,
                                                         position_ids)
-
         # [bsz, nh, t, hd]
 
         #####################################################
@@ -299,14 +299,15 @@ class LlamaModelCCM(LlamaPreTrainedModel):
             [LlamaDecoderLayer(config) for _ in range(config.num_hidden_layers)])
         self.norm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
 
+        self.gradient_checkpointing = False
+        # Initialize weights and apply final processing
+        self.post_init()
+
+        ## Modified part: Add some new arguments
         self.comp_token = None
         self.sum_token = None
         self.comp_relative_embedding = config.comp_relative_embedding
         print("Compression token relative embedding: ", self.comp_relative_embedding)
-
-        self.gradient_checkpointing = False
-        # Initialize weights and apply final processing
-        self.post_init()
 
     def get_input_embeddings(self):
         return self.embed_tokens
@@ -339,7 +340,7 @@ class LlamaModelCCM(LlamaPreTrainedModel):
 
         return combined_attention_mask
 
-    def get_comp_mask(self, input_ids):
+    def get_comp_sum_mask(self, input_ids):
         """
         Returns:
             comp_mask [batch_size, seq_len]: 1 for comp/sum token, 0 for others
@@ -397,7 +398,7 @@ class LlamaModelCCM(LlamaPreTrainedModel):
     ) -> Union[Tuple, BaseModelOutputWithPast]:
         #####################################################
         ##### Modified: Get compression masks for conditional inference and memory update #####
-        comp_mask, sum_mask, sum_attn_mask = self.get_comp_mask(input_ids)
+        comp_mask, sum_mask, sum_attn_mask = self.get_comp_sum_mask(input_ids)
         #####################################################
 
         output_attentions = (output_attentions
@@ -575,11 +576,13 @@ class LlamaForCausalLM_CCM(LlamaPreTrainedModel, GistGenerationMixin):
         # Initialize weights and apply final processing
         self.post_init()
 
+        ## Modified part: Add some new arguments
         self.comp_token = None
         self.sum_token = None
         self.comp_relative_embedding = config.comp_relative_embedding
 
     def update_comp_token(self, comp_token, sum_token):
+        ## Modified part
         self.comp_token = comp_token
         self.model.comp_token = comp_token
 
@@ -803,13 +806,6 @@ class LlamaForCausalLM_CCM(LlamaPreTrainedModel, GistGenerationMixin):
             input_ids = input_ids[:, -1:]
             position_ids = position_ids[:, -1:]
 
-        # Check size
-        if (past_key_values is not None) and (attention_mask is not None):
-            input_len = input_ids.shape[1]
-            kv_len = past_key_values[0][0].shape[2]
-            attn_len = attention_mask.shape[-1]
-            t = f"kv: {kv_len}, input: {input_len}, attn: {attn_len}"
-            assert (input_len == attn_len) or (kv_len + input_len == attn_len), t
         #####################################################
 
         # if `inputs_embeds` are passed, we only want to use them in the 1st

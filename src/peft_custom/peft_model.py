@@ -83,6 +83,7 @@ class PeftModel(PushToHubMixin, torch.nn.Module):
         - **word_embeddings** (`torch.nn.Embedding`) -- The word embeddings of the transformer backbone
         in the base model if using [`PromptLearningConfig`].
     """
+
     def __init__(self, model, peft_config: PeftConfig, adapter_name="default"):
         super().__init__()
         self.base_model = model
@@ -379,9 +380,9 @@ class PeftModel(PushToHubMixin, torch.nn.Module):
             filename, map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         # load the weights into the model
         set_peft_model_state_dict(self, adapters_weights, adapter_name=adapter_name)
-        if ((getattr(self, "hf_device_map", None) is not None)
-                and (len(set(self.hf_device_map.values()).intersection({"cpu", "disk"})) > 0)
-                and len(self.peft_config) == 1):
+        if ((getattr(self, "hf_device_map", None) is not None) and
+            (len(set(self.hf_device_map.values()).intersection({"cpu", "disk"})) > 0) and
+                len(self.peft_config) == 1):
             device_map = kwargs.get("device_map", "auto")
             max_memory = kwargs.get("max_memory", None)
             offload_dir = kwargs.get("offload_folder", None)
@@ -475,6 +476,7 @@ class PeftModelForSequenceClassification(PeftModel):
         trainable params: 370178 || all params: 108680450 || trainable%: 0.3406113979101117
         ```
     """
+
     def __init__(self, model, peft_config: PeftConfig, adapter_name="default"):
         super().__init__(model, peft_config, adapter_name)
         if self.modules_to_save is None:
@@ -596,8 +598,8 @@ class PeftModelForSequenceClassification(PeftModel):
                 if self.config.problem_type is None:
                     if self.base_model.num_labels == 1:
                         self.config.problem_type = "regression"
-                    elif self.base_model.num_labels > 1 and (labels.dtype == torch.long
-                                                             or labels.dtype == torch.int):
+                    elif self.base_model.num_labels > 1 and (labels.dtype == torch.long or
+                                                             labels.dtype == torch.int):
                         self.config.problem_type = "single_label_classification"
                     else:
                         self.config.problem_type = "multi_label_classification"
@@ -615,8 +617,8 @@ class PeftModelForSequenceClassification(PeftModel):
                     loss_fct = BCEWithLogitsLoss()
                     loss = loss_fct(logits, labels)
             if not return_dict:
-                output = (logits, ) + outputs[2:]
-                return ((loss, ) + output) if loss is not None else output
+                output = (logits,) + outputs[2:]
+                return ((loss,) + output) if loss is not None else output
 
             return SequenceClassifierOutput(
                 loss=loss,
@@ -662,6 +664,7 @@ class PeftModelForCausalLM(PeftModel):
         trainable params: 1843200 || all params: 775873280 || trainable%: 0.23756456724479544
         ```
     """
+
     def __init__(self, model, peft_config: PeftConfig, adapter_name="default"):
         super().__init__(model, peft_config, adapter_name)
         self.base_model_prepare_inputs_for_generation = self.base_model.prepare_inputs_for_generation
@@ -677,6 +680,7 @@ class PeftModelForCausalLM(PeftModel):
         return_dict=None,
         **kwargs,
     ):
+
         peft_config = self.active_peft_config
         if not isinstance(peft_config, PromptLearningConfig):
             return self.base_model(
@@ -849,6 +853,7 @@ class PeftModelForSeq2SeqLM(PeftModel):
         trainable params: 884736 || all params: 223843584 || trainable%: 0.3952474242013566
         ```
     """
+
     def __init__(self, model, peft_config: PeftConfig, adapter_name="default"):
         super().__init__(model, peft_config, adapter_name)
         self.base_model_prepare_inputs_for_generation = self.base_model.prepare_inputs_for_generation
@@ -1052,6 +1057,7 @@ class PeftModelForTokenClassification(PeftModel):
         trainable params: 370178 || all params: 108680450 || trainable%: 0.3406113979101117
         ```
     """
+
     def __init__(self, model, peft_config: PeftConfig = None, adapter_name="default"):
         super().__init__(model, peft_config, adapter_name)
         if self.modules_to_save is None:
@@ -1176,8 +1182,8 @@ class PeftModelForTokenClassification(PeftModel):
                 loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
 
             if not return_dict:
-                output = (logits, ) + outputs[2:]
-                return ((loss, ) + output) if loss is not None else output
+                output = (logits,) + outputs[2:]
+                return ((loss,) + output) if loss is not None else output
 
             return TokenClassifierOutput(
                 loss=loss,

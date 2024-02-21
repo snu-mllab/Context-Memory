@@ -1,11 +1,14 @@
 """Custom wandb integrations"""
 
-
 import dataclasses
 import os
 
 import wandb
-from transformers.integrations import TrainerCallback, WandbCallback
+try:
+    from transformers.integrations import TrainerCallback, WandbCallback
+except:
+    from transformers import TrainerCallback
+    from transformers.integrations import WandbCallback
 from transformers.utils import is_torch_tpu_available, logging
 
 from .arguments import Arguments
@@ -14,6 +17,7 @@ logger = logging.get_logger(__name__)
 
 
 class CustomWandbCallback(WandbCallback):
+
     def __init__(self, wandb_args: Arguments, *args, **kwargs):
         """Just do standard wandb init, but save the arguments for setup."""
         super().__init__(*args, **kwargs)
@@ -56,9 +60,7 @@ class CustomWandbCallback(WandbCallback):
             # define default x-axis (for latest wandb versions)
             if getattr(self._wandb, "define_metric", None):
                 self._wandb.define_metric("train/global_step")
-                self._wandb.define_metric(
-                    "*", step_metric="train/global_step", step_sync=True
-                )
+                self._wandb.define_metric("*", step_metric="train/global_step", step_sync=True)
 
             # keep track of model topology and gradients, unsupported on TPU
             if not is_torch_tpu_available() and os.getenv("WANDB_WATCH") != "false":
@@ -70,6 +72,7 @@ class CustomWandbCallback(WandbCallback):
 
 
 class EvaluateFirstStepCallback(TrainerCallback):
+
     def on_step_end(self, args, state, control, **kwargs):
         if state.global_step == 1:
             control.should_evaluate = True
