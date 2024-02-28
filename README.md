@@ -70,7 +70,7 @@ python download.py --type data --name [metaicl,soda]
 > - Our experiments basically run on a single A100 80GB within 5~24h. In the case of DailyDialog, which has a smaller context length, we can run on a single RTX 3090 GPU with 24GB memory. 
 > - Set up a [Wandb](https://wandb.ai/) account for logging, and replace the username with yours in the wandb.entity field of [`src/conf/config.yaml`](https://github.com/snu-mllab/Context-Memory/blob/main/src/config/config.yaml).
 
-**Step 1: Fintuning LLaMA.** We recommend first finetuning the LLaMA pretrained models on a dataset: 
+**Step 1 (optional): Fintuning LLaMA.** We recommend first finetuning the LLaMA pretrained models on a dataset: 
 ```
 python run.py --train --dataset [unified,metaicl,dialog,lamp] --model llama-7b \
     --comp_type no
