@@ -37,7 +37,7 @@ python inference.py -i -m [llama-7b,llama-2-7b-chat] --eval_name concat_recur
   <div style="margin-top: 0px;"></div>
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/demo.png" align="center" width=55%>
 
-- **Testing pre-defined examples**: Run the code without `-i` flag. You can modify test examples in [`./src/test_case.py`](https://github.com/snu-mllab/Context-Memory/blob/main/src/test_case.py).
+- **Testing pre-defined examples**: Run the code without `-i` flag to measure perplexity on the target output and compare generation results. You can modify test examples in [`./src/test_case.py`](https://github.com/snu-mllab/Context-Memory/blob/main/src/test_case.py). 
   <div style="margin-top: 0px;"></div>
   <img src="https://github.com/snu-mllab/Context-Memory/blob/main/image/test.png" align="center" width=90%>
 > [!Note]  
