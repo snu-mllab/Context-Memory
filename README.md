@@ -114,10 +114,11 @@ python run.py --dataset [metaicl,dialog,lamp] --model llama-7b \
 
 ## Citation
 ```
-@article{kim2023compressed,
-      title={Compressed Context Memory For Online Language Model Interaction}, 
-      author={Kim, Jang-Hyun and Yeom, Junyoung and Yun, Sangdoo and Song, Hyun Oh},
-      journal={arXiv preprint arXiv:2312.03414},
-      year={2023},
+@inproceedings{
+      kim2024compressed,
+      title={Compressed Context Memory for Online Language Model Interaction},
+      author={Jang-Hyun Kim and Junyoung Yeom and Sangdoo Yun and Hyun Oh Song},
+      booktitle={ICLR},
+      year={2024},
 }
 ```
