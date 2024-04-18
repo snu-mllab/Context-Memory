@@ -33,6 +33,9 @@ logger = logging.get_logger(__name__)
 
 
 class LinearMask(nn.Linear):
+    """Linear function with compression mask as an argument. 
+       The mask is used for conditional LoRA at src/peft_custom/lora.py-Linear()-forward().
+    """
 
     def forward(self, input: Tensor, comp_mask=None) -> Tensor:
         return F.linear(input, self.weight, self.bias)
